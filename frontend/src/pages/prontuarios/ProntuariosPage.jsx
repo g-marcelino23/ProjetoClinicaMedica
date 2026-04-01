@@ -1,44 +1,67 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Modal, Button, Form, Table, Card, Row, Col, Badge } from 'react-bootstrap'
-import { FaNotesMedical, FaPlus, FaEdit, FaTrash, FaSearch } from 'react-icons/fa'
-import api from '../../services/api'
+import {
+  Modal,
+  Button,
+  Form,
+  Table,
+  Card,
+  Row,
+  Col,
+  Spinner,
+  Alert
+} from 'react-bootstrap'
+import { FaNotesMedical, FaPlus, FaEdit, FaSearch } from 'react-icons/fa'
+import MainLayout from '../../components/layout/MainLayout'
+import { listarConsultas } from '../../services/consultaService'
+import {
+  listarProntuarios,
+  criarProntuario,
+  atualizarProntuario
+} from '../../services/prontuariosService'
+import { useAuth } from '../../context/AuthContext'
 
 function ProntuariosPage() {
+  const { user } = useAuth()
+
   const [prontuarios, setProntuarios] = useState([])
-  const [pacientes, setPacientes] = useState([])
-  const [medicos, setMedicos] = useState([])
+  const [consultas, setConsultas] = useState([])
   const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState('')
+  const [sucesso, setSucesso] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
   const [busca, setBusca] = useState('')
 
   const [formData, setFormData] = useState({
     id: null,
-    pacienteId: '',
-    medicoId: '',
-    data: '',
-    descricao: '',
+    consulta_id: '',
+    paciente_id: '',
+    medico_id: '',
+    queixa_principal: '',
+    anamnese: '',
     diagnostico: '',
-    prescricao: '',
-    observacoes: '',
+    observacoes: ''
   })
+
+  const perfil = user?.perfil
+  const podeCriarProntuario = perfil === 'MEDICO'
+  const podeEditarProntuario = perfil === 'MEDICO'
 
   const carregarDados = async () => {
     try {
       setLoading(true)
+      setErro('')
 
-      const [resProntuarios, resPacientes, resMedicos] = await Promise.all([
-        api.get('/prontuarios'),
-        api.get('/pacientes'),
-        api.get('/medicos'),
+      const [dadosProntuarios, dadosConsultas] = await Promise.all([
+        listarProntuarios(),
+        listarConsultas()
       ])
 
-      setProntuarios(Array.isArray(resProntuarios.data) ? resProntuarios.data : [])
-      setPacientes(Array.isArray(resPacientes.data) ? resPacientes.data : [])
-      setMedicos(Array.isArray(resMedicos.data) ? resMedicos.data : [])
+      setProntuarios(Array.isArray(dadosProntuarios) ? dadosProntuarios : [])
+      setConsultas(Array.isArray(dadosConsultas) ? dadosConsultas : [])
     } catch (error) {
       console.error('Erro ao carregar prontuários:', error)
-      alert('Erro ao carregar os dados dos prontuários.')
+      setErro(error.response?.data?.erro || 'Erro ao carregar os dados dos prontuários.')
     } finally {
       setLoading(false)
     }
@@ -48,133 +71,179 @@ function ProntuariosPage() {
     carregarDados()
   }, [])
 
-  const getPacienteNome = (pacienteId) => {
-    const paciente = pacientes.find((item) => item.id === Number(pacienteId))
-    return paciente ? paciente.nome : 'Não informado'
+  const formatarData = (data) => {
+    if (!data) return ''
+    return new Date(data).toLocaleDateString('pt-BR')
   }
 
-  const getMedicoNome = (medicoId) => {
-    const medico = medicos.find((item) => item.id === Number(medicoId))
-    return medico ? medico.nome : 'Não informado'
+  const formatarHora = (hora) => {
+    if (!hora) return ''
+    return String(hora).slice(0, 5)
   }
+
+  const consultasSemProntuario = useMemo(() => {
+    const idsUsados = prontuarios.map((item) => Number(item.consulta_id))
+
+    return consultas.filter((consulta) => !idsUsados.includes(Number(consulta.id)))
+  }, [consultas, prontuarios])
 
   const prontuariosFiltrados = useMemo(() => {
     const termo = busca.toLowerCase()
 
     return prontuarios.filter((prontuario) => {
-      const pacienteNome = getPacienteNome(prontuario.pacienteId).toLowerCase()
-      const medicoNome = getMedicoNome(prontuario.medicoId).toLowerCase()
-
       return (
-        pacienteNome.includes(termo) ||
-        medicoNome.includes(termo) ||
-        (prontuario.descricao || '').toLowerCase().includes(termo) ||
-        (prontuario.diagnostico || '').toLowerCase().includes(termo) ||
-        (prontuario.prescricao || '').toLowerCase().includes(termo)
+        String(prontuario.id || '').includes(termo) ||
+        (prontuario.paciente_nome || '').toLowerCase().includes(termo) ||
+        (prontuario.medico_nome || '').toLowerCase().includes(termo) ||
+        (prontuario.queixa_principal || '').toLowerCase().includes(termo) ||
+        (prontuario.anamnese || '').toLowerCase().includes(termo) ||
+        (prontuario.diagnostico || '').toLowerCase().includes(termo)
       )
     })
-  }, [busca, prontuarios, pacientes, medicos])
+  }, [busca, prontuarios])
 
-  const abrirModalCadastro = () => {
-    setModoEdicao(false)
+  const limparFormulario = () => {
     setFormData({
       id: null,
-      pacienteId: '',
-      medicoId: '',
-      data: '',
-      descricao: '',
+      consulta_id: '',
+      paciente_id: '',
+      medico_id: '',
+      queixa_principal: '',
+      anamnese: '',
       diagnostico: '',
-      prescricao: '',
-      observacoes: '',
+      observacoes: ''
     })
+  }
+
+  const abrirModalCadastro = () => {
+    if (!podeCriarProntuario) {
+      setErro('Você não tem permissão para cadastrar prontuário.')
+      return
+    }
+
+    setModoEdicao(false)
+    limparFormulario()
     setShowModal(true)
   }
 
   const abrirModalEdicao = (prontuario) => {
+    if (!podeEditarProntuario) {
+      setErro('Você não tem permissão para editar prontuário.')
+      return
+    }
+
     setModoEdicao(true)
     setFormData({
       id: prontuario.id,
-      pacienteId: String(prontuario.pacienteId || ''),
-      medicoId: String(prontuario.medicoId || ''),
-      data: prontuario.data ? prontuario.data.split('T')[0] : '',
-      descricao: prontuario.descricao || '',
+      consulta_id: String(prontuario.consulta_id || ''),
+      paciente_id: String(prontuario.paciente_id || ''),
+      medico_id: String(prontuario.medico_id || ''),
+      queixa_principal: prontuario.queixa_principal || '',
+      anamnese: prontuario.anamnese || '',
       diagnostico: prontuario.diagnostico || '',
-      prescricao: prontuario.prescricao || '',
-      observacoes: prontuario.observacoes || '',
+      observacoes: prontuario.observacoes || ''
     })
     setShowModal(true)
   }
 
   const fecharModal = () => {
     setShowModal(false)
+    limparFormulario()
   }
 
   const handleChange = (e) => {
     const { name, value } = e.target
 
+    if (name === 'consulta_id') {
+      const consultaSelecionada = consultas.find(
+        (consulta) => Number(consulta.id) === Number(value)
+      )
+
+      setFormData((prev) => ({
+        ...prev,
+        consulta_id: value,
+        paciente_id: consultaSelecionada ? String(consultaSelecionada.paciente_id) : '',
+        medico_id: consultaSelecionada ? String(consultaSelecionada.medico_id) : ''
+      }))
+      return
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }))
   }
 
   const salvarProntuario = async (e) => {
     e.preventDefault()
 
-    if (!formData.pacienteId || !formData.medicoId || !formData.data || !formData.descricao) {
-      alert('Preencha os campos obrigatórios.')
+    if (modoEdicao && !podeEditarProntuario) {
+      setErro('Você não tem permissão para editar prontuário.')
+      return
+    }
+
+    if (!modoEdicao && !podeCriarProntuario) {
+      setErro('Você não tem permissão para cadastrar prontuário.')
+      return
+    }
+
+    if (!formData.consulta_id || !formData.paciente_id || !formData.medico_id) {
+      setErro('Consulta, paciente e médico são obrigatórios.')
       return
     }
 
     const payload = {
-      pacienteId: Number(formData.pacienteId),
-      medicoId: Number(formData.medicoId),
-      data: formData.data,
-      descricao: formData.descricao,
+      consulta_id: Number(formData.consulta_id),
+      paciente_id: Number(formData.paciente_id),
+      medico_id: Number(formData.medico_id),
+      queixa_principal: formData.queixa_principal,
+      anamnese: formData.anamnese,
       diagnostico: formData.diagnostico,
-      prescricao: formData.prescricao,
-      observacoes: formData.observacoes,
+      observacoes: formData.observacoes
     }
 
     try {
+      setErro('')
+      setSucesso('')
+
       if (modoEdicao) {
-        await api.put(`/prontuarios/${formData.id}`, payload)
-        alert('Prontuário atualizado com sucesso!')
+        await atualizarProntuario(formData.id, {
+          queixa_principal: formData.queixa_principal,
+          anamnese: formData.anamnese,
+          diagnostico: formData.diagnostico,
+          observacoes: formData.observacoes
+        })
+        setSucesso('Prontuário atualizado com sucesso!')
       } else {
-        await api.post('/prontuarios', payload)
-        alert('Prontuário cadastrado com sucesso!')
+        await criarProntuario(payload)
+        setSucesso('Prontuário cadastrado com sucesso!')
       }
 
       fecharModal()
       carregarDados()
     } catch (error) {
       console.error('Erro ao salvar prontuário:', error)
-      alert('Erro ao salvar prontuário.')
-    }
-  }
-
-  const excluirProntuario = async (id) => {
-    const confirmar = window.confirm('Deseja realmente excluir este prontuário?')
-    if (!confirmar) return
-
-    try {
-      await api.delete(`/prontuarios/${id}`)
-      alert('Prontuário excluído com sucesso!')
-      carregarDados()
-    } catch (error) {
-      console.error('Erro ao excluir prontuário:', error)
-      alert('Erro ao excluir prontuário.')
+      setErro(error.response?.data?.erro || 'Erro ao salvar prontuário.')
     }
   }
 
   const totalProntuarios = prontuarios.length
+
   const prontuariosHoje = prontuarios.filter((item) => {
-    if (!item.data) return false
-    return item.data.split('T')[0] === new Date().toISOString().split('T')[0]
+    if (!item.created_at) return false
+
+    const hoje = new Date().toISOString().split('T')[0]
+    const dataItem = new Date(item.created_at).toISOString().split('T')[0]
+
+    return dataItem === hoje
   }).length
 
+  const totalPacientesAtendidos = new Set(
+    prontuarios.map((item) => item.paciente_id)
+  ).size
+
   return (
-    <div className="container-fluid py-4">
+    <MainLayout>
       <Row className="g-3 mb-4">
         <Col md={4}>
           <Card className="border-0 shadow-sm rounded-4 h-100">
@@ -201,13 +270,14 @@ function ProntuariosPage() {
           <Card className="border-0 shadow-sm rounded-4 h-100">
             <Card.Body>
               <small className="text-muted">Pacientes atendidos</small>
-              <h3 className="fw-bold mt-2 mb-0">
-                {new Set(prontuarios.map((item) => item.pacienteId)).size}
-              </h3>
+              <h3 className="fw-bold mt-2 mb-0">{totalPacientesAtendidos}</h3>
             </Card.Body>
           </Card>
         </Col>
       </Row>
+
+      {erro && <Alert variant="danger">{erro}</Alert>}
+      {sucesso && <Alert variant="success">{sucesso}</Alert>}
 
       <Card className="border-0 shadow-sm rounded-4">
         <Card.Body>
@@ -215,7 +285,7 @@ function ProntuariosPage() {
             <div>
               <h4 className="fw-bold mb-1">Gestão de Prontuários</h4>
               <p className="text-muted mb-0">
-                Registre histórico clínico, diagnóstico e prescrição dos pacientes.
+                Registre histórico clínico, anamnese e diagnóstico dos pacientes.
               </p>
             </div>
 
@@ -234,14 +304,16 @@ function ProntuariosPage() {
                 />
               </div>
 
-              <Button
-                variant="primary"
-                className="rounded-3 d-flex align-items-center gap-2"
-                onClick={abrirModalCadastro}
-              >
-                <FaPlus />
-                Novo Prontuário
-              </Button>
+              {podeCriarProntuario && (
+                <Button
+                  variant="primary"
+                  className="rounded-3 d-flex align-items-center gap-2"
+                  onClick={abrirModalCadastro}
+                >
+                  <FaPlus />
+                  Novo Prontuário
+                </Button>
+              )}
             </div>
           </div>
 
@@ -250,12 +322,12 @@ function ProntuariosPage() {
               <thead className="table-light">
                 <tr>
                   <th>ID</th>
+                  <th>Consulta</th>
                   <th>Paciente</th>
                   <th>Médico</th>
-                  <th>Data</th>
-                  <th>Descrição</th>
+                  <th>Queixa principal</th>
                   <th>Diagnóstico</th>
-                  <th>Prescrição</th>
+                  <th>Data</th>
                   <th className="text-center">Ações</th>
                 </tr>
               </thead>
@@ -264,6 +336,7 @@ function ProntuariosPage() {
                 {loading ? (
                   <tr>
                     <td colSpan="8" className="text-center py-4">
+                      <Spinner animation="border" size="sm" className="me-2" />
                       Carregando prontuários...
                     </td>
                   </tr>
@@ -271,41 +344,34 @@ function ProntuariosPage() {
                   prontuariosFiltrados.map((prontuario) => (
                     <tr key={prontuario.id}>
                       <td>#{prontuario.id}</td>
-                      <td className="fw-semibold">{getPacienteNome(prontuario.pacienteId)}</td>
-                      <td>{getMedicoNome(prontuario.medicoId)}</td>
-                      <td>{prontuario.data ? prontuario.data.split('T')[0] : ''}</td>
+                      <td>#{prontuario.consulta_id}</td>
+                      <td className="fw-semibold">{prontuario.paciente_nome}</td>
+                      <td>{prontuario.medico_nome}</td>
                       <td style={{ maxWidth: '220px' }}>
-                        {prontuario.descricao || <span className="text-muted">Sem descrição</span>}
+                        {prontuario.queixa_principal || (
+                          <span className="text-muted">Sem queixa principal</span>
+                        )}
                       </td>
                       <td style={{ maxWidth: '220px' }}>
                         {prontuario.diagnostico || (
                           <span className="text-muted">Sem diagnóstico</span>
                         )}
                       </td>
-                      <td style={{ maxWidth: '220px' }}>
-                        {prontuario.prescricao || (
-                          <span className="text-muted">Sem prescrição</span>
-                        )}
-                      </td>
+                      <td>{formatarData(prontuario.created_at)}</td>
                       <td className="text-center">
                         <div className="d-flex justify-content-center gap-2">
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            className="rounded-3"
-                            onClick={() => abrirModalEdicao(prontuario)}
-                          >
-                            <FaEdit />
-                          </Button>
-
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            className="rounded-3"
-                            onClick={() => excluirProntuario(prontuario.id)}
-                          >
-                            <FaTrash />
-                          </Button>
+                          {podeEditarProntuario ? (
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              className="rounded-3"
+                              onClick={() => abrirModalEdicao(prontuario)}
+                            >
+                              <FaEdit />
+                            </Button>
+                          ) : (
+                            <span className="text-muted">Somente visualização</span>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -333,57 +399,70 @@ function ProntuariosPage() {
         <Form onSubmit={salvarProntuario}>
           <Modal.Body>
             <Row>
-              <Col md={4} className="mb-3">
+              <Col md={12} className="mb-3">
+                <Form.Label>Consulta</Form.Label>
+                <Form.Select
+                  name="consulta_id"
+                  value={formData.consulta_id}
+                  onChange={handleChange}
+                  disabled={modoEdicao}
+                  required
+                >
+                  <option value="">Selecione uma consulta</option>
+
+                  {(modoEdicao ? consultas : consultasSemProntuario).map((consulta) => (
+                    <option key={consulta.id} value={consulta.id}>
+                      Consulta #{consulta.id} - {consulta.paciente_nome} / {consulta.medico_nome} - {formatarData(consulta.data_consulta)} às {formatarHora(consulta.hora_consulta)}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Col>
+
+              <Col md={6} className="mb-3">
                 <Form.Label>Paciente</Form.Label>
-                <Form.Select
-                  name="pacienteId"
-                  value={formData.pacienteId}
-                  onChange={handleChange}
-                >
-                  <option value="">Selecione um paciente</option>
-                  {pacientes.map((paciente) => (
-                    <option key={paciente.id} value={paciente.id}>
-                      {paciente.nome}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
-
-              <Col md={4} className="mb-3">
-                <Form.Label>Médico</Form.Label>
-                <Form.Select
-                  name="medicoId"
-                  value={formData.medicoId}
-                  onChange={handleChange}
-                >
-                  <option value="">Selecione um médico</option>
-                  {medicos.map((medico) => (
-                    <option key={medico.id} value={medico.id}>
-                      {medico.nome}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Col>
-
-              <Col md={4} className="mb-3">
-                <Form.Label>Data</Form.Label>
                 <Form.Control
-                  type="date"
-                  name="data"
-                  value={formData.data}
-                  onChange={handleChange}
+                  type="text"
+                  value={
+                    consultas.find((c) => Number(c.id) === Number(formData.consulta_id))
+                      ?.paciente_nome || ''
+                  }
+                  readOnly
+                />
+              </Col>
+
+              <Col md={6} className="mb-3">
+                <Form.Label>Médico</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={
+                    consultas.find((c) => Number(c.id) === Number(formData.consulta_id))
+                      ?.medico_nome || ''
+                  }
+                  readOnly
                 />
               </Col>
 
               <Col md={12} className="mb-3">
-                <Form.Label>Descrição</Form.Label>
+                <Form.Label>Queixa principal</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  name="queixa_principal"
+                  value={formData.queixa_principal}
+                  onChange={handleChange}
+                  placeholder="Descreva a queixa principal do paciente"
+                />
+              </Col>
+
+              <Col md={12} className="mb-3">
+                <Form.Label>Anamnese</Form.Label>
                 <Form.Control
                   as="textarea"
                   rows={3}
-                  name="descricao"
-                  value={formData.descricao}
+                  name="anamnese"
+                  value={formData.anamnese}
                   onChange={handleChange}
-                  placeholder="Descreva o atendimento realizado"
+                  placeholder="Informe a anamnese"
                 />
               </Col>
 
@@ -396,18 +475,6 @@ function ProntuariosPage() {
                   value={formData.diagnostico}
                   onChange={handleChange}
                   placeholder="Informe o diagnóstico"
-                />
-              </Col>
-
-              <Col md={12} className="mb-3">
-                <Form.Label>Prescrição</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={3}
-                  name="prescricao"
-                  value={formData.prescricao}
-                  onChange={handleChange}
-                  placeholder="Informe a prescrição"
                 />
               </Col>
 
@@ -435,7 +502,7 @@ function ProntuariosPage() {
           </Modal.Footer>
         </Form>
       </Modal>
-    </div>
+    </MainLayout>
   )
 }
 

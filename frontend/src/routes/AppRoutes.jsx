@@ -56,7 +56,7 @@ function AppRoutes() {
         <Route
           path="/agenda"
           element={
-            <ProtectedRoute allowedRoles={['SECRETARIO', 'MEDICO']}>
+            <ProtectedRoute allowedRoles={['SECRETARIO', 'MEDICO', 'PACIENTE']}>
               <AgendaPage />
             </ProtectedRoute>
           }
@@ -65,7 +65,7 @@ function AppRoutes() {
         <Route
           path="/prontuarios"
           element={
-            <ProtectedRoute allowedRoles={['SECRETARIO', 'MEDICO']}>
+            <ProtectedRoute allowedRoles={['SECRETARIO', 'MEDICO', 'PACIENTE']}>
               <ProntuariosPage />
             </ProtectedRoute>
           }
@@ -74,7 +74,7 @@ function AppRoutes() {
         <Route
           path="/exames"
           element={
-            <ProtectedRoute allowedRoles={['SECRETARIO', 'MEDICO']}>
+            <ProtectedRoute allowedRoles={['SECRETARIO', 'MEDICO', 'PACIENTE']}>
               <ExamesPage />
             </ProtectedRoute>
           }

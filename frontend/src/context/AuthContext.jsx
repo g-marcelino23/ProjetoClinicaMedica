@@ -13,7 +13,13 @@ export function AuthProvider({ children }) {
 
     if (storedUser && storedToken) {
       try {
-        setUser(JSON.parse(storedUser))
+        const parsedUser = JSON.parse(storedUser)
+
+        setUser({
+          ...parsedUser,
+          paciente_id: parsedUser?.paciente_id || null,
+          medico_id: parsedUser?.medico_id || null
+        })
       } catch (error) {
         localStorage.removeItem('user')
         localStorage.removeItem('token')
@@ -53,9 +59,15 @@ export function AuthProvider({ children }) {
         }
       }
 
+      const usuarioFormatado = {
+        ...usuario,
+        paciente_id: usuario?.paciente_id || null,
+        medico_id: usuario?.medico_id || null
+      }
+
       localStorage.setItem('token', token)
-      localStorage.setItem('user', JSON.stringify(usuario))
-      setUser(usuario)
+      localStorage.setItem('user', JSON.stringify(usuarioFormatado))
+      setUser(usuarioFormatado)
 
       return { success: true }
     } catch (error) {
@@ -87,6 +99,10 @@ export function AuthProvider({ children }) {
         loading,
         login,
         logout,
+        perfil: user?.perfil || null,
+        isPaciente: user?.perfil === 'PACIENTE',
+        isMedico: user?.perfil === 'MEDICO',
+        isSecretario: user?.perfil === 'SECRETARIO',
       }}
     >
       {children}

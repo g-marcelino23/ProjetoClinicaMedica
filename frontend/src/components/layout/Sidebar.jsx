@@ -48,19 +48,19 @@ function Sidebar() {
       path: '/agenda',
       label: 'Agenda',
       icon: <FaClock />,
-      roles: ['SECRETARIO', 'MEDICO'],
+      roles: ['SECRETARIO', 'MEDICO', 'PACIENTE'],
     },
     {
       path: '/exames',
       label: 'Exames',
       icon: <FaFlask />,
-      roles: ['SECRETARIO', 'MEDICO'],
+      roles: ['SECRETARIO', 'MEDICO', 'PACIENTE'],
     },
     {
       path: '/prontuarios',
       label: 'Prontuários',
       icon: <FaNotesMedical />,
-      roles: ['SECRETARIO', 'MEDICO'],
+      roles: ['SECRETARIO', 'MEDICO', 'PACIENTE'],
     },
   ]
 
