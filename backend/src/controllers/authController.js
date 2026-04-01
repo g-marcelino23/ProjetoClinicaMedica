@@ -3,21 +3,90 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const register = async (req, res) => {
-    try {
-        const { nome, email, senha, perfil } = req.body;
+    const client = await pool.connect();
 
-        const usuarioExiste = await pool.query(
+    try {
+        const {
+            nome,
+            email,
+            senha,
+            perfil,
+            cpf,
+            telefone,
+            data_nascimento,
+            endereco,
+            crm,
+            especialidade
+        } = req.body;
+
+        if (!nome || !email || !senha || !perfil) {
+            return res.status(400).json({
+                erro: 'Nome, email, senha e perfil são obrigatórios'
+            });
+        }
+
+        if (!['PACIENTE', 'MEDICO', 'SECRETARIO'].includes(perfil)) {
+            return res.status(400).json({
+                erro: 'Perfil inválido'
+            });
+        }
+
+        if (perfil === 'PACIENTE' && !cpf) {
+            return res.status(400).json({
+                erro: 'CPF é obrigatório para paciente'
+            });
+        }
+
+        if (perfil === 'MEDICO' && (!crm || !especialidade)) {
+            return res.status(400).json({
+                erro: 'CRM e especialidade são obrigatórios para médico'
+            });
+        }
+
+        const usuarioExiste = await client.query(
             'SELECT id FROM usuarios WHERE email = $1',
             [email]
         );
 
         if (usuarioExiste.rows.length > 0) {
-            return res.status(400).json({ erro: 'Já existe um usuário com este e-mail' });
+            return res.status(400).json({
+                erro: 'Já existe um usuário com este e-mail'
+            });
         }
+
+        // verifica CPF duplicado apenas para paciente
+        if (perfil === 'PACIENTE' && cpf) {
+            const cpfPacienteExiste = await client.query(
+                'SELECT id FROM pacientes WHERE cpf = $1',
+                [cpf]
+            );
+
+            if (cpfPacienteExiste.rows.length > 0) {
+                return res.status(400).json({
+                    erro: 'Já existe cadastro com este CPF'
+                });
+            }
+        }
+
+        // verifica CRM duplicado apenas para médico
+        if (perfil === 'MEDICO' && crm) {
+            const crmExiste = await client.query(
+                'SELECT id FROM medicos WHERE crm = $1',
+                [crm]
+            );
+
+            if (crmExiste.rows.length > 0) {
+                return res.status(400).json({
+                    erro: 'Já existe médico cadastrado com este CRM'
+                });
+            }
+        }
+
+        await client.query('BEGIN');
 
         const senhaHash = await bcrypt.hash(senha, 10);
 
-        const usuarioResult = await pool.query(
+        const usuarioResult = await client.query(
             `INSERT INTO usuarios (nome, email, senha, perfil)
              VALUES ($1, $2, $3, $4)
              RETURNING id, nome, email, perfil`,
@@ -26,38 +95,59 @@ const register = async (req, res) => {
 
         const usuario = usuarioResult.rows[0];
 
-        // 🔥 CRIA AUTOMATICAMENTE PACIENTE
         if (perfil === 'PACIENTE') {
-            await pool.query(
-                `INSERT INTO pacientes (usuario_id, cpf)
-                 VALUES ($1, $2)`,
-                [usuario.id, '00000000000'] // pode ajustar depois
+            await client.query(
+                `INSERT INTO pacientes (usuario_id, cpf, telefone, data_nascimento, endereco)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                [
+                    usuario.id,
+                    cpf,
+                    telefone || null,
+                    data_nascimento || null,
+                    endereco || null
+                ]
             );
         }
 
-        // 🔥 CRIA AUTOMATICAMENTE MEDICO
         if (perfil === 'MEDICO') {
-            await pool.query(
+            await client.query(
                 `INSERT INTO medicos (usuario_id, crm, especialidade)
                  VALUES ($1, $2, $3)`,
-                [usuario.id, '0000', 'Clínico Geral']
+                [
+                    usuario.id,
+                    crm,
+                    especialidade
+                ]
             );
         }
 
-        res.status(201).json({
+        await client.query('COMMIT');
+
+        return res.status(201).json({
             mensagem: 'Usuário criado com sucesso',
             usuario
         });
 
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error('Erro no register:', error);
-        res.status(500).json({ erro: 'Erro ao cadastrar usuário' });
+        return res.status(500).json({
+            erro: 'Erro ao cadastrar usuário'
+        });
+    } finally {
+        client.release();
     }
 };
 
 const login = async (req, res) => {
     try {
         const { email, senha } = req.body;
+
+        if (!email || !senha) {
+            return res.status(400).json({
+                erro: 'Email e senha são obrigatórios'
+            });
+        }
 
         const result = await pool.query(
             'SELECT * FROM usuarios WHERE email = $1',
@@ -110,7 +200,7 @@ const login = async (req, res) => {
             { expiresIn: '1d' }
         );
 
-        res.json({
+        return res.json({
             mensagem: 'Login realizado com sucesso',
             token,
             usuario: {
@@ -122,10 +212,9 @@ const login = async (req, res) => {
                 medico_id
             }
         });
-
     } catch (error) {
         console.error('Erro no login:', error);
-        res.status(500).json({ erro: 'Erro ao realizar login' });
+        return res.status(500).json({ erro: 'Erro ao realizar login' });
     }
 };
 

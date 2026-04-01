@@ -34,7 +34,10 @@ function LoginPage() {
         <Col md={6} lg={4}>
           <Card className="shadow border-0 rounded-4">
             <Card.Body className="p-4">
-              <h2 className="text-center mb-4 fw-bold">Clinical Med</h2>
+              <h2 className="text-center mb-2 fw-bold">Clinical Med</h2>
+              <p className="text-center text-muted mb-4">
+                Entre na sua conta para acessar o sistema
+              </p>
 
               {erro && <Alert variant="danger">{erro}</Alert>}
 
@@ -46,6 +49,7 @@ function LoginPage() {
                     placeholder="Digite seu e-mail"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    required
                   />
                 </Form.Group>
 
@@ -56,10 +60,16 @@ function LoginPage() {
                     placeholder="Digite sua senha"
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
+                    required
                   />
                 </Form.Group>
 
-                <Button type="submit" variant="primary" className="w-100" disabled={submitting}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-100"
+                  disabled={submitting}
+                >
                   {submitting ? (
                     <>
                       <Spinner animation="border" size="sm" className="me-2" />
@@ -69,16 +79,37 @@ function LoginPage() {
                     'Entrar'
                   )}
                 </Button>
-                <div className="text-center mt-3">
-  <small>
-    Não tem conta?{' '}
-    <span
-      style={{ cursor: 'pointer', color: '#0d6efd' }}
-      onClick={() => navigate('/register')}
-    >
-      Cadastre-se
-    </span>
+
+                <div className="text-center mt-4">
+  <small className="text-muted d-block mb-2">
+    Não tem conta?
   </small>
+
+  <div className="d-flex justify-content-center gap-2 flex-wrap">
+    <Button
+      variant="outline-primary"
+      size="sm"
+      onClick={() => navigate('/cadastro/paciente')}
+    >
+      Sou Paciente
+    </Button>
+
+    <Button
+      variant="outline-success"
+      size="sm"
+      onClick={() => navigate('/cadastro/medico')}
+    >
+      Sou Médico
+    </Button>
+
+    <Button
+      variant="outline-dark"
+      size="sm"
+      onClick={() => navigate('/cadastro/secretario')}
+    >
+      Sou Secretário
+    </Button>
+  </div>
 </div>
               </Form>
             </Card.Body>

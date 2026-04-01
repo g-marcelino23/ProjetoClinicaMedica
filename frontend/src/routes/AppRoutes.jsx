@@ -9,6 +9,9 @@ import ExamesPage from '../pages/exames/ExamesPage'
 import ProntuariosPage from '../pages/prontuarios/ProntuariosPage'
 import ProtectedRoute from './ProtectedRoute'
 import RegisterPage from '../pages/auth/RegisterPage'
+import CadastroPacientePage from '../pages/CadastroPacientePage'
+import CadastroMedicoPage from '../pages/CadastroMedicoPage'
+import CadastroSecretarioPage from '../pages/CadastroSecretarioPage'
 
 function AppRoutes() {
   return (
@@ -34,6 +37,12 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        <Route path="/cadastro/paciente" element={<CadastroPacientePage />} />
+
+        <Route path="/cadastro/medico" element={<CadastroMedicoPage />} />
+
+        <Route path="/cadastro/secretario" element={<CadastroSecretarioPage />} />
 
         <Route
           path="/medicos"
