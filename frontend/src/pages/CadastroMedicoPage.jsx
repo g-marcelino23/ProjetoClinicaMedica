@@ -8,9 +8,21 @@ import {
   Form,
   Button,
   Alert,
-  Spinner
+  Spinner,
+  InputGroup
 } from 'react-bootstrap'
+import {
+  FaUserMd,
+  FaUser,
+  FaEnvelope,
+  FaLock,
+  FaIdCard,
+  FaPhone,
+  FaStethoscope,
+  FaBriefcaseMedical
+} from 'react-icons/fa'
 import { registerUsuario } from '../services/authService'
+import './CadastroMedicoPage.css'
 
 function CadastroMedicoPage() {
   const navigate = useNavigate()
@@ -70,17 +82,9 @@ function CadastroMedicoPage() {
 
     let novoValor = value
 
-    if (name === 'cpf') {
-      novoValor = formatarCPF(value)
-    }
-
-    if (name === 'telefone') {
-      novoValor = formatarTelefone(value)
-    }
-
-    if (name === 'crm') {
-      novoValor = formatarCRM(value)
-    }
+    if (name === 'cpf') novoValor = formatarCPF(value)
+    if (name === 'telefone') novoValor = formatarTelefone(value)
+    if (name === 'crm') novoValor = formatarCRM(value)
 
     setFormData((prev) => ({
       ...prev,
@@ -138,143 +142,229 @@ function CadastroMedicoPage() {
   }
 
   return (
-    <div className="min-vh-100 d-flex align-items-center bg-light">
-      <Container>
-        <Row className="justify-content-center">
-          <Col md={8} lg={6}>
-            <Card className="shadow border-0 rounded-4">
-              <Card.Body className="p-4">
-                <div className="text-center mb-4">
-                  <h2 className="fw-bold">Cadastro de Médico</h2>
-                  <p className="text-muted mb-0">
-                    Crie sua conta profissional no Clinical Med
-                  </p>
-                </div>
+    <div className="cadastro-medico-page">
+      <Container fluid className="cadastro-medico-container">
+        <Row className="min-vh-100">
+          <Col md={5} className="cadastro-medico-banner d-none d-md-flex">
+            <div className="cadastro-medico-overlay"></div>
 
-                {erro && <Alert variant="danger">{erro}</Alert>}
-                {sucesso && <Alert variant="success">{sucesso}</Alert>}
+            <div className="cadastro-medico-banner-content">
+              <span className="cadastro-medico-badge">
+                <FaUserMd className="me-2" />
+                Área do Médico
+              </span>
 
-                <Form onSubmit={handleSubmit}>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Nome completo</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="nome"
-                      value={formData.nome}
-                      onChange={handleChange}
-                      placeholder="Digite seu nome"
-                      required
-                    />
-                  </Form.Group>
+              <h1>Atue com mais organização e confiança</h1>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>E-mail</Form.Label>
-                    <Form.Control
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      placeholder="Digite seu e-mail"
-                      required
-                    />
-                  </Form.Group>
+              <p>
+                Cadastre-se para acessar uma plataforma pensada para apoiar sua rotina
+                clínica, com mais controle sobre atendimentos, exames e informações do paciente.
+              </p>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Senha</Form.Label>
-                    <Form.Control
-                      type="password"
-                      name="senha"
-                      value={formData.senha}
-                      onChange={handleChange}
-                      placeholder="Digite sua senha"
-                      required
-                    />
-                  </Form.Group>
+              <div className="cadastro-medico-info-box">
+                <strong>Clinical Med</strong>
+                <span>
+                  Um sistema profissional para otimizar a gestão do atendimento médico.
+                </span>
+              </div>
+            </div>
+          </Col>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>CPF</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="cpf"
-                      value={formData.cpf}
-                      onChange={handleChange}
-                      placeholder="000.000.000-00"
-                      inputMode="numeric"
-                      maxLength={14}
-                      required
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Telefone</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="telefone"
-                      value={formData.telefone}
-                      onChange={handleChange}
-                      placeholder="(85) 99999-9999"
-                      inputMode="numeric"
-                      maxLength={15}
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>CRM</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="crm"
-                      value={formData.crm}
-                      onChange={handleChange}
-                      placeholder="12345-CE"
-                      maxLength={13}
-                      required
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-4">
-                    <Form.Label>Especialidade</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="especialidade"
-                      value={formData.especialidade}
-                      onChange={handleChange}
-                      placeholder="Ex: Cardiologia"
-                      required
-                    />
-                  </Form.Group>
-
-                  <div className="d-grid mb-3">
-                    <Button
-                      type="submit"
-                      variant="success"
-                      size="lg"
-                      disabled={loading}
-                    >
-                      {loading ? (
-                        <>
-                          <Spinner
-                            as="span"
-                            animation="border"
-                            size="sm"
-                            className="me-2"
-                          />
-                          Cadastrando...
-                        </>
-                      ) : (
-                        'Cadastrar Médico'
-                      )}
-                    </Button>
+          <Col md={7} xs={12} className="cadastro-medico-form-wrapper">
+            <div className="cadastro-medico-form-box">
+              <Card className="cadastro-medico-card shadow-lg border-0">
+                <Card.Body className="p-4 p-lg-5">
+                  <div className="text-center mb-4">
+                    <h2 className="cadastro-medico-title fw-bold">
+                      Cadastro de Médico
+                    </h2>
+                    <p className="text-muted mb-0">
+                      Preencha seus dados profissionais para criar sua conta
+                    </p>
                   </div>
 
-                  <div className="text-center">
-                    <span className="text-muted">Já tem conta? </span>
-                    <Link to="/login" className="text-decoration-none fw-semibold">
-                      Entrar
-                    </Link>
-                  </div>
-                </Form>
-              </Card.Body>
-            </Card>
+                  {erro && <Alert variant="danger">{erro}</Alert>}
+                  {sucesso && <Alert variant="success">{sucesso}</Alert>}
+
+                  <Form onSubmit={handleSubmit}>
+                    <Row>
+                      <Col md={12}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Nome completo</Form.Label>
+                          <InputGroup className="cadastro-medico-input-group">
+                            <InputGroup.Text className="cadastro-medico-input-icon">
+                              <FaUser />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="text"
+                              name="nome"
+                              value={formData.nome}
+                              onChange={handleChange}
+                              placeholder="Digite seu nome completo"
+                              required
+                              className="cadastro-medico-input"
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>E-mail</Form.Label>
+                          <InputGroup className="cadastro-medico-input-group">
+                            <InputGroup.Text className="cadastro-medico-input-icon">
+                              <FaEnvelope />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleChange}
+                              placeholder="Digite seu e-mail"
+                              required
+                              className="cadastro-medico-input"
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Senha</Form.Label>
+                          <InputGroup className="cadastro-medico-input-group">
+                            <InputGroup.Text className="cadastro-medico-input-icon">
+                              <FaLock />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="password"
+                              name="senha"
+                              value={formData.senha}
+                              onChange={handleChange}
+                              placeholder="Digite sua senha"
+                              required
+                              className="cadastro-medico-input"
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>CPF</Form.Label>
+                          <InputGroup className="cadastro-medico-input-group">
+                            <InputGroup.Text className="cadastro-medico-input-icon">
+                              <FaIdCard />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="text"
+                              name="cpf"
+                              value={formData.cpf}
+                              onChange={handleChange}
+                              placeholder="000.000.000-00"
+                              inputMode="numeric"
+                              maxLength={14}
+                              required
+                              className="cadastro-medico-input"
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>Telefone</Form.Label>
+                          <InputGroup className="cadastro-medico-input-group">
+                            <InputGroup.Text className="cadastro-medico-input-icon">
+                              <FaPhone />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="text"
+                              name="telefone"
+                              value={formData.telefone}
+                              onChange={handleChange}
+                              placeholder="(85) 99999-9999"
+                              inputMode="numeric"
+                              maxLength={15}
+                              className="cadastro-medico-input"
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>CRM</Form.Label>
+                          <InputGroup className="cadastro-medico-input-group">
+                            <InputGroup.Text className="cadastro-medico-input-icon">
+                              <FaBriefcaseMedical />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="text"
+                              name="crm"
+                              value={formData.crm}
+                              onChange={handleChange}
+                              placeholder="12345-CE"
+                              maxLength={13}
+                              required
+                              className="cadastro-medico-input"
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group className="mb-4">
+                          <Form.Label>Especialidade</Form.Label>
+                          <InputGroup className="cadastro-medico-input-group">
+                            <InputGroup.Text className="cadastro-medico-input-icon">
+                              <FaStethoscope />
+                            </InputGroup.Text>
+                            <Form.Control
+                              type="text"
+                              name="especialidade"
+                              value={formData.especialidade}
+                              onChange={handleChange}
+                              placeholder="Ex: Cardiologia"
+                              required
+                              className="cadastro-medico-input"
+                            />
+                          </InputGroup>
+                        </Form.Group>
+                      </Col>
+                    </Row>
+
+                    <div className="d-grid mb-3">
+                      <Button
+                        type="submit"
+                        className="cadastro-medico-btn"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <Spinner
+                              as="span"
+                              animation="border"
+                              size="sm"
+                              className="me-2"
+                            />
+                            Cadastrando...
+                          </>
+                        ) : (
+                          'Cadastrar Médico'
+                        )}
+                      </Button>
+                    </div>
+
+                    <div className="text-center">
+                      <span className="text-muted">Já tem conta? </span>
+                      <Link to="/login" className="cadastro-medico-link">
+                        Entrar
+                      </Link>
+                    </div>
+                  </Form>
+                </Card.Body>
+              </Card>
+            </div>
           </Col>
         </Row>
       </Container>

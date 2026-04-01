@@ -1,7 +1,19 @@
 import { useState } from 'react'
-import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap'
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Form,
+  Button,
+  Alert,
+  Spinner,
+  InputGroup
+} from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa'
+import './LoginPage.css'
 
 function LoginPage() {
   const navigate = useNavigate()
@@ -11,112 +23,178 @@ function LoginPage() {
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [mostrarSenha, setMostrarSenha] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setErro('')
     setSubmitting(true)
 
-    const result = await login(email, senha)
+    try {
+      const result = await login(email, senha)
 
-    if (result.success) {
-      navigate('/dashboard')
-    } else {
-      setErro(result.message)
+      if (result.success) {
+        navigate('/dashboard')
+      } else {
+        setErro(result.message || 'Erro ao fazer login.')
+      }
+    } catch (error) {
+      setErro('Erro ao fazer login.')
+    } finally {
+      setSubmitting(false)
     }
-
-    setSubmitting(false)
   }
 
   return (
-    <Container className="d-flex justify-content-center align-items-center vh-100">
-      <Row className="w-100 justify-content-center">
-        <Col md={6} lg={4}>
-          <Card className="shadow border-0 rounded-4">
-            <Card.Body className="p-4">
-              <h2 className="text-center mb-2 fw-bold">Clinical Med</h2>
-              <p className="text-center text-muted mb-4">
-                Entre na sua conta para acessar o sistema
+    <div className="login-page">
+      <Container fluid className="login-container">
+        <Row>
+          <Col md={7} className="login-banner d-none d-md-flex">
+            <div className="login-banner-overlay"></div>
+
+            <div className="login-banner-content">
+              <span className="login-badge">Clinical Med</span>
+
+              <h1>Sistema inteligente de gestão clínica</h1>
+
+              <p>
+                Gerencie pacientes, consultas, exames e prontuários com
+                segurança, organização e eficiência em uma plataforma moderna.
               </p>
+            </div>
+          </Col>
 
-              {erro && <Alert variant="danger">{erro}</Alert>}
+          <Col md={5} xs={12} className="login-form-wrapper">
+            <div className="login-form-box">
+              <Card className="login-card shadow-lg">
+                <Card.Body>
+                  <div className="text-center mb-4">
+                    <h2 className="fw-bold login-title">Entrar</h2>
+                    <p className="text-muted mb-0">
+                      Acesse sua conta no Clinical Med
+                    </p>
+                  </div>
 
-              <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3">
-                  <Form.Label>E-mail</Form.Label>
-                  <Form.Control
-                    type="email"
-                    placeholder="Digite seu e-mail"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Senha</Form.Label>
-                  <Form.Control
-                    type="password"
-                    placeholder="Digite sua senha"
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    required
-                  />
-                </Form.Group>
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="w-100"
-                  disabled={submitting}
-                >
-                  {submitting ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-2" />
-                      Entrando...
-                    </>
-                  ) : (
-                    'Entrar'
+                  {erro && (
+                    <Alert variant="danger" className="mb-3">
+                      {erro}
+                    </Alert>
                   )}
-                </Button>
 
-                <div className="text-center mt-4">
-  <small className="text-muted d-block mb-2">
-    Não tem conta?
-  </small>
+                  <Form onSubmit={handleSubmit}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>E-mail</Form.Label>
+                      <InputGroup className="custom-input-group">
+                        <InputGroup.Text className="input-icon">
+                          <FaEnvelope />
+                        </InputGroup.Text>
 
-  <div className="d-flex justify-content-center gap-2 flex-wrap">
-    <Button
-      variant="outline-primary"
-      size="sm"
-      onClick={() => navigate('/cadastro/paciente')}
-    >
-      Sou Paciente
-    </Button>
+                        <Form.Control
+                          type="email"
+                          placeholder="Digite seu e-mail"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                          className="login-input"
+                          autoFocus
+                        />
+                      </InputGroup>
+                    </Form.Group>
 
-    <Button
-      variant="outline-success"
-      size="sm"
-      onClick={() => navigate('/cadastro/medico')}
-    >
-      Sou Médico
-    </Button>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Senha</Form.Label>
+                      <InputGroup className="custom-input-group">
+                        <InputGroup.Text className="input-icon">
+                          <FaLock />
+                        </InputGroup.Text>
 
-    <Button
-      variant="outline-dark"
-      size="sm"
-      onClick={() => navigate('/cadastro/secretario')}
-    >
-      Sou Secretário
-    </Button>
-  </div>
-</div>
-              </Form>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+                        <Form.Control
+                          type={mostrarSenha ? 'text' : 'password'}
+                          placeholder="Digite sua senha"
+                          value={senha}
+                          onChange={(e) => setSenha(e.target.value)}
+                          required
+                          className="login-input"
+                        />
+
+                        <Button
+                          variant="light"
+                          onClick={() => setMostrarSenha((prev) => !prev)}
+                          type="button"
+                          className="password-toggle-btn"
+                          aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                        >
+                          {mostrarSenha ? <FaEyeSlash /> : <FaEye />}
+                        </Button>
+                      </InputGroup>
+                    </Form.Group>
+
+                    <Button
+                      type="submit"
+                      className="login-btn"
+                      disabled={submitting}
+                    >
+                      {submitting ? (
+                        <>
+                          <Spinner animation="border" size="sm" className="me-2" />
+                          Entrando...
+                        </>
+                      ) : (
+                        'Entrar'
+                      )}
+                    </Button>
+                  </Form>
+
+                  <div className="register-section">
+                    <small className="text-muted d-block text-center mb-3">
+                      Não tem conta? Escolha seu perfil
+                    </small>
+
+                    <div className="profile-cards">
+                      <button
+                        type="button"
+                        className="profile-card paciente"
+                        onClick={() => navigate('/cadastro/paciente')}
+                      >
+                        <div className="profile-icon">👤</div>
+                        <div className="text-start">
+                          <h6>Paciente</h6>
+                          <p>Acesse e acompanhe suas consultas</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="profile-card medico"
+                        onClick={() => navigate('/cadastro/medico')}
+                      >
+                        <div className="profile-icon">🩺</div>
+                        <div className="text-start">
+                          <h6>Médico</h6>
+                          <p>Gerencie atendimentos e exames</p>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="profile-card secretario"
+                        onClick={() => navigate('/cadastro/secretario')}
+                      >
+                        <div className="profile-icon">🧾</div>
+                        <div className="text-start">
+                          <h6>Secretário</h6>
+                          <p>Controle cadastros e agendamentos</p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </Card.Body>
+              </Card>
+            </div>
+          </Col>
+        </Row>
+      </Container>
+    </div>
   )
 }
 

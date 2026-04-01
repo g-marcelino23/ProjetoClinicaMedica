@@ -1,0 +1,279 @@
+.cadastro-paciente-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #f6fbff;
+}
+
+.cadastro-paciente-container {
+  padding: 0 !important;
+}
+
+.cadastro-paciente-banner,
+.cadastro-paciente-form-wrapper {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* LADO ESQUERDO */
+.cadastro-paciente-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: #fff;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(14, 116, 144, 0.88), rgba(59, 130, 246, 0.75)),
+    url('https://images.unsplash.com/photo-1584515933487-779824d29309?auto=format&fit=crop&w=1200&q=80');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.cadastro-paciente-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.cadastro-paciente-banner-content {
+  position: relative;
+  z-index: 2;
+  max-width: 480px;
+}
+
+.cadastro-paciente-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  font-weight: 600;
+  margin-bottom: 20px;
+  backdrop-filter: blur(6px);
+}
+
+.cadastro-paciente-banner-content h1 {
+  font-size: 2.7rem;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 18px;
+}
+
+.cadastro-paciente-banner-content p {
+  font-size: 1.04rem;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.95);
+  margin-bottom: 24px;
+}
+
+.cadastro-paciente-info-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 18px;
+  padding: 18px;
+  backdrop-filter: blur(8px);
+}
+
+.cadastro-paciente-info-box strong {
+  font-size: 1rem;
+}
+
+.cadastro-paciente-info-box span {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+/* LADO DIREITO */
+.cadastro-paciente-form-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, #e0f2fe 0%, #f8fbff 45%, #eff8ff 100%);
+}
+
+.cadastro-paciente-form-box {
+  width: 100%;
+  max-width: 760px;
+}
+
+.cadastro-paciente-card {
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+}
+
+.cadastro-paciente-title {
+  color: #0f172a;
+}
+
+/* ALERTAS */
+.alert {
+  border-radius: 14px !important;
+}
+
+/* INPUTS */
+.cadastro-input-group {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d8e6f2;
+  transition: all 0.25s ease;
+}
+
+.cadastro-input-group:hover {
+  border-color: #b7d4ea;
+}
+
+.cadastro-input-group:focus-within {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 0.22rem rgba(14, 165, 233, 0.12);
+}
+
+.cadastro-input-icon {
+  min-width: 54px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f9ff !important;
+  border: none !important;
+  color: #0284c7;
+}
+
+.cadastro-input {
+  height: 52px !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 16px !important;
+  font-size: 0.97rem;
+  color: #0f172a;
+}
+
+.cadastro-input::placeholder {
+  color: #64748b;
+}
+
+.cadastro-input:focus {
+  box-shadow: none !important;
+}
+
+/* BOTÃO */
+.cadastro-paciente-btn {
+  height: 52px;
+  border: none;
+  border-radius: 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.2);
+  transition: all 0.25s ease;
+}
+
+.cadastro-paciente-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 28px rgba(37, 99, 235, 0.25);
+}
+
+.cadastro-paciente-link {
+  text-decoration: none;
+  font-weight: 700;
+  color: #0284c7;
+}
+
+.cadastro-paciente-link:hover {
+  color: #0369a1;
+}
+
+/* TABLET */
+@media (max-width: 991px) {
+  .cadastro-paciente-banner {
+    padding: 32px;
+  }
+
+  .cadastro-paciente-banner-content h1 {
+    font-size: 2.1rem;
+  }
+
+  .cadastro-paciente-form-box {
+    max-width: 680px;
+  }
+
+  .cadastro-paciente-card .card-body {
+    padding: 1.75rem !important;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 767px) {
+  .cadastro-paciente-banner {
+    display: none !important;
+  }
+
+  .cadastro-paciente-form-wrapper {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 16px;
+    background: linear-gradient(135deg, #eef9ff 0%, #f8fbff 55%, #eff8ff 100%);
+  }
+
+  .cadastro-paciente-form-box {
+    max-width: 100%;
+  }
+
+  .cadastro-paciente-card {
+    border-radius: 20px;
+  }
+
+  .cadastro-paciente-card .card-body {
+    padding: 1.25rem !important;
+  }
+
+  .cadastro-paciente-title {
+    font-size: 1.6rem;
+  }
+
+  .cadastro-input,
+  .cadastro-input-icon,
+  .cadastro-paciente-btn {
+    height: 48px !important;
+  }
+}
+
+/* CELULARES PEQUENOS */
+@media (max-width: 420px) {
+  .cadastro-paciente-form-wrapper {
+    padding: 12px;
+  }
+
+  .cadastro-paciente-card .card-body {
+    padding: 1rem !important;
+  }
+
+  .cadastro-paciente-title {
+    font-size: 1.4rem;
+  }
+
+  .cadastro-input,
+  .cadastro-input-icon,
+  .cadastro-paciente-btn {
+    height: 46px !important;
+    font-size: 0.92rem;
+  }
+
+  .cadastro-input-icon {
+    min-width: 46px;
+  }
+}
