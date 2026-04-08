@@ -12,6 +12,7 @@ import RegisterPage from '../pages/auth/RegisterPage'
 import CadastroPacientePage from '../pages/CadastroPacientePage'
 import CadastroMedicoPage from '../pages/CadastroMedicoPage'
 import CadastroSecretarioPage from '../pages/CadastroSecretarioPage'
+import PrescricoesPage from '../pages/PrescricoesPage'
 
 function AppRoutes() {
   return (
@@ -39,10 +40,17 @@ function AppRoutes() {
         />
 
         <Route path="/cadastro/paciente" element={<CadastroPacientePage />} />
-
         <Route path="/cadastro/medico" element={<CadastroMedicoPage />} />
-
         <Route path="/cadastro/secretario" element={<CadastroSecretarioPage />} />
+
+        <Route
+          path="/prescricoes"
+          element={
+            <ProtectedRoute allowedRoles={['PACIENTE', 'MEDICO', 'SECRETARIO']}>
+              <PrescricoesPage />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/medicos"

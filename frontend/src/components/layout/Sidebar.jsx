@@ -62,6 +62,12 @@ function Sidebar() {
       icon: <FaNotesMedical />,
       roles: ['SECRETARIO', 'MEDICO', 'PACIENTE'],
     },
+
+    {
+  label: 'Prescrições',
+  path: '/prescricoes',
+  roles: ['MEDICO', 'SECRETARIO','PACIENTE'],
+}
   ]
 
   const menuFiltrado = menuItems.filter((item) => item.roles.includes(perfil))

@@ -1,18 +1,54 @@
-const express = require('express');
-const router = express.Router();
+const express = require('express')
+const router = express.Router()
 
 const {
     listarPrescricoes,
+    listarMinhasPrescricoes,
     buscarPrescricaoPorId,
     criarPrescricao,
     atualizarPrescricao,
     deletarPrescricao
-} = require('../controllers/prescricaoController');
+} = require('../controllers/prescricaoController')
 
-router.get('/', listarPrescricoes);
-router.get('/:id', buscarPrescricaoPorId);
-router.post('/', criarPrescricao);
-router.put('/:id', atualizarPrescricao);
-router.delete('/:id', deletarPrescricao);
+const authMiddleware = require('../middlewares/authMiddleware')
+const roleMiddleware = require('../middlewares/roleMiddleware')
 
-module.exports = router;
+router.use(authMiddleware)
+
+router.get(
+    '/',
+    roleMiddleware(['MEDICO', 'SECRETARIO']),
+    listarPrescricoes
+)
+
+router.get(
+    '/minhas',
+    roleMiddleware(['PACIENTE']),
+    listarMinhasPrescricoes
+)
+
+router.get(
+    '/:id',
+    roleMiddleware(['PACIENTE', 'MEDICO', 'SECRETARIO']),
+    buscarPrescricaoPorId
+)
+
+router.post(
+    '/',
+    roleMiddleware(['MEDICO', 'SECRETARIO']),
+    criarPrescricao
+)
+
+router.put(
+    '/:id',
+    roleMiddleware(['MEDICO', 'SECRETARIO']),
+    atualizarPrescricao
+)
+
+router.delete(
+    '/:id',
+    roleMiddleware(['MEDICO', 'SECRETARIO']),
+    deletarPrescricao
+)
+
+module.exports = router
