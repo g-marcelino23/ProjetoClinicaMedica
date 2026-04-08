@@ -7,7 +7,8 @@ import {
   Spinner,
   Alert,
   ListGroup,
-  ProgressBar
+  ProgressBar,
+  Button
 } from 'react-bootstrap'
 import MainLayout from '../../components/layout/MainLayout'
 import { useAuth } from '../../context/AuthContext'
@@ -37,7 +38,10 @@ import {
   CartesianGrid,
   Legend
 } from 'recharts'
-import { listarConsultas } from '../../services/consultaService'
+import {
+  listarConsultas,
+  realizarCheckInConsulta
+} from '../../services/consultaService'
 import { listarExames } from '../../services/exameService'
 import { listarProntuarios } from '../../services/prontuariosService'
 import { listarAgendas } from '../../services/agendaService'
@@ -49,6 +53,8 @@ function DashboardPage() {
 
   const [loading, setLoading] = useState(true)
   const [erro, setErro] = useState('')
+  const [sucesso, setSucesso] = useState('')
+  const [loadingCheckInId, setLoadingCheckInId] = useState(null)
 
   const [consultas, setConsultas] = useState([])
   const [exames, setExames] = useState([])
@@ -58,6 +64,8 @@ function DashboardPage() {
   const [medicos, setMedicos] = useState([])
 
   const perfil = user?.perfil || 'SECRETARIO'
+  const pacienteIdLogado = user?.paciente_id || null
+  const medicoIdLogado = user?.medico_id || null
 
   useEffect(() => {
     carregarDashboard()
@@ -67,6 +75,7 @@ function DashboardPage() {
     try {
       setLoading(true)
       setErro('')
+      setSucesso('')
 
       if (perfil === 'SECRETARIO') {
         const [
@@ -104,6 +113,8 @@ function DashboardPage() {
         setExames(Array.isArray(dadosExames) ? dadosExames : [])
         setProntuarios(Array.isArray(dadosProntuarios) ? dadosProntuarios : [])
         setAgendas(Array.isArray(dadosAgendas) ? dadosAgendas : [])
+        setPacientes([])
+        setMedicos([])
       } else if (perfil === 'PACIENTE') {
         const [dadosConsultas, dadosExames, dadosProntuarios] = await Promise.all([
           listarConsultas(),
@@ -114,6 +125,9 @@ function DashboardPage() {
         setConsultas(Array.isArray(dadosConsultas) ? dadosConsultas : [])
         setExames(Array.isArray(dadosExames) ? dadosExames : [])
         setProntuarios(Array.isArray(dadosProntuarios) ? dadosProntuarios : [])
+        setAgendas([])
+        setPacientes([])
+        setMedicos([])
       }
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error)
@@ -126,37 +140,108 @@ function DashboardPage() {
   const hoje = new Date()
   const hojeStr = hoje.toISOString().split('T')[0]
 
+  const consultasVisiveis = useMemo(() => {
+    if (perfil === 'SECRETARIO') return consultas
+
+    if (perfil === 'MEDICO') {
+      return consultas.filter(
+        (consulta) => Number(consulta.medico_id) === Number(medicoIdLogado)
+      )
+    }
+
+    if (perfil === 'PACIENTE') {
+      return consultas.filter(
+        (consulta) => Number(consulta.paciente_id) === Number(pacienteIdLogado)
+      )
+    }
+
+    return []
+  }, [consultas, perfil, medicoIdLogado, pacienteIdLogado])
+
+  const examesVisiveis = useMemo(() => {
+    if (perfil === 'SECRETARIO') return exames
+
+    if (perfil === 'MEDICO') {
+      return exames.filter((exame) => {
+        if (exame.medico_id == null) return true
+        return Number(exame.medico_id) === Number(medicoIdLogado)
+      })
+    }
+
+    if (perfil === 'PACIENTE') {
+      return exames.filter((exame) => {
+        if (exame.paciente_id == null) return true
+        return Number(exame.paciente_id) === Number(pacienteIdLogado)
+      })
+    }
+
+    return []
+  }, [exames, perfil, medicoIdLogado, pacienteIdLogado])
+
+  const prontuariosVisiveis = useMemo(() => {
+    if (perfil === 'SECRETARIO') return prontuarios
+
+    if (perfil === 'MEDICO') {
+      return prontuarios.filter((prontuario) => {
+        if (prontuario.medico_id == null) return true
+        return Number(prontuario.medico_id) === Number(medicoIdLogado)
+      })
+    }
+
+    if (perfil === 'PACIENTE') {
+      return prontuarios.filter((prontuario) => {
+        if (prontuario.paciente_id == null) return true
+        return Number(prontuario.paciente_id) === Number(pacienteIdLogado)
+      })
+    }
+
+    return []
+  }, [prontuarios, perfil, medicoIdLogado, pacienteIdLogado])
+
+  const agendasVisiveis = useMemo(() => {
+    if (perfil === 'SECRETARIO') return agendas
+
+    if (perfil === 'MEDICO') {
+      return agendas.filter((agenda) => {
+        if (agenda.medico_id == null) return true
+        return Number(agenda.medico_id) === Number(medicoIdLogado)
+      })
+    }
+
+    return []
+  }, [agendas, perfil, medicoIdLogado])
+
   const consultasHoje = useMemo(() => {
-    return consultas.filter((consulta) => {
+    return consultasVisiveis.filter((consulta) => {
       const data =
         consulta.data_consulta?.slice(0, 10) ||
         consulta.data?.slice(0, 10) ||
         ''
       return data === hojeStr
     })
-  }, [consultas, hojeStr])
+  }, [consultasVisiveis, hojeStr])
 
   const examesPendentes = useMemo(() => {
-    return exames.filter(
+    return examesVisiveis.filter(
       (exame) => exame.status === 'SOLICITADO' || exame.status === 'AGENDADO'
     )
-  }, [exames])
+  }, [examesVisiveis])
 
   const agendasDisponiveis = useMemo(() => {
-    return agendas.filter((agenda) => agenda.disponivel === true)
-  }, [agendas])
+    return agendasVisiveis.filter((agenda) => agenda.disponivel === true)
+  }, [agendasVisiveis])
 
   const ultimasConsultas = useMemo(() => {
-    return [...consultas].slice(0, 5)
-  }, [consultas])
+    return [...consultasVisiveis].slice(0, 5)
+  }, [consultasVisiveis])
 
   const ultimosExames = useMemo(() => {
-    return [...exames].slice(0, 5)
-  }, [exames])
+    return [...examesVisiveis].slice(0, 5)
+  }, [examesVisiveis])
 
   const ultimosProntuarios = useMemo(() => {
-    return [...prontuarios].slice(0, 5)
-  }, [prontuarios])
+    return [...prontuariosVisiveis].slice(0, 5)
+  }, [prontuariosVisiveis])
 
   const consultasPorStatus = useMemo(() => {
     const base = {
@@ -167,7 +252,7 @@ function DashboardPage() {
       FALTOU: 0
     }
 
-    consultas.forEach((consulta) => {
+    consultasVisiveis.forEach((consulta) => {
       const status = consulta.status || 'AGENDADA'
       if (base[status] !== undefined) base[status] += 1
     })
@@ -179,7 +264,7 @@ function DashboardPage() {
       { nome: 'Cancelada', valor: base.CANCELADA },
       { nome: 'Faltou', valor: base.FALTOU }
     ]
-  }, [consultas])
+  }, [consultasVisiveis])
 
   const examesPorStatus = useMemo(() => {
     const base = {
@@ -190,7 +275,7 @@ function DashboardPage() {
       CANCELADO: 0
     }
 
-    exames.forEach((exame) => {
+    examesVisiveis.forEach((exame) => {
       const status = exame.status || 'SOLICITADO'
       if (base[status] !== undefined) base[status] += 1
     })
@@ -202,7 +287,7 @@ function DashboardPage() {
       { nome: 'Entregue', valor: base.ENTREGUE },
       { nome: 'Cancelado', valor: base.CANCELADO }
     ]
-  }, [exames])
+  }, [examesVisiveis])
 
   const consultasUltimos7Dias = useMemo(() => {
     const dias = []
@@ -215,7 +300,7 @@ function DashboardPage() {
       const chave = data.toISOString().split('T')[0]
       const label = nomesDias[data.getDay()]
 
-      const total = consultas.filter((consulta) => {
+      const total = consultasVisiveis.filter((consulta) => {
         const dataConsulta =
           consulta.data_consulta?.slice(0, 10) ||
           consulta.data?.slice(0, 10) ||
@@ -230,7 +315,40 @@ function DashboardPage() {
     }
 
     return dias
-  }, [consultas])
+  }, [consultasVisiveis])
+
+  const proximaConsultaPaciente = useMemo(() => {
+    if (perfil !== 'PACIENTE') return null
+
+    const consultasFuturas = consultasVisiveis
+      .filter((consulta) => {
+        const status = consulta.status || ''
+        if (status === 'CANCELADA' || status === 'REALIZADA' || status === 'FALTOU') {
+          return false
+        }
+
+        if (!consulta.data_consulta) return false
+
+        const dataHoraConsulta = new Date(
+          `${consulta.data_consulta.slice(0, 10)}T${String(
+            consulta.hora_consulta || '00:00'
+          ).slice(0, 5)}`
+        )
+
+        return !Number.isNaN(dataHoraConsulta.getTime())
+      })
+      .sort((a, b) => {
+        const dataA = new Date(
+          `${a.data_consulta.slice(0, 10)}T${String(a.hora_consulta || '00:00').slice(0, 5)}`
+        )
+        const dataB = new Date(
+          `${b.data_consulta.slice(0, 10)}T${String(b.hora_consulta || '00:00').slice(0, 5)}`
+        )
+        return dataA - dataB
+      })
+
+    return consultasFuturas[0] || null
+  }, [perfil, consultasVisiveis])
 
   const notificacoes = useMemo(() => {
     const lista = []
@@ -249,7 +367,10 @@ function DashboardPage() {
       })
     }
 
-    const canceladas = consultas.filter((consulta) => consulta.status === 'CANCELADA').length
+    const canceladas = consultasVisiveis.filter(
+      (consulta) => consulta.status === 'CANCELADA'
+    ).length
+
     if (canceladas > 0) {
       lista.push({
         tipo: 'danger',
@@ -257,30 +378,94 @@ function DashboardPage() {
       })
     }
 
-    const realizados = consultas.filter((consulta) => consulta.status === 'REALIZADA').length
-    if (realizados > 0) {
+    const realizadas = consultasVisiveis.filter(
+      (consulta) => consulta.status === 'REALIZADA'
+    ).length
+
+    if (realizadas > 0) {
       lista.push({
         tipo: 'success',
-        texto: `${realizados} consulta(s) realizada(s)`
+        texto: `${realizadas} consulta(s) realizada(s)`
+      })
+    }
+
+    if (
+      perfil === 'PACIENTE' &&
+      proximaConsultaPaciente &&
+      !proximaConsultaPaciente.checkin_realizado
+    ) {
+      lista.unshift({
+        tipo: 'info',
+        texto: 'Você possui check-in pendente na sua próxima consulta'
       })
     }
 
     return lista.slice(0, 4)
-  }, [consultas, consultasHoje.length, examesPendentes.length])
+  }, [
+    consultasHoje.length,
+    examesPendentes.length,
+    consultasVisiveis,
+    perfil,
+    proximaConsultaPaciente
+  ])
 
   const percentualConsultasRealizadas = useMemo(() => {
-    if (consultas.length === 0) return 0
-    const realizadas = consultas.filter((consulta) => consulta.status === 'REALIZADA').length
-    return Math.round((realizadas / consultas.length) * 100)
-  }, [consultas])
+    if (consultasVisiveis.length === 0) return 0
+    const realizadas = consultasVisiveis.filter(
+      (consulta) => consulta.status === 'REALIZADA'
+    ).length
+    return Math.round((realizadas / consultasVisiveis.length) * 100)
+  }, [consultasVisiveis])
 
   const percentualExamesEntregues = useMemo(() => {
-    if (exames.length === 0) return 0
-    const entregues = exames.filter((exame) => exame.status === 'ENTREGUE').length
-    return Math.round((entregues / exames.length) * 100)
-  }, [exames])
+    if (examesVisiveis.length === 0) return 0
+    const entregues = examesVisiveis.filter(
+      (exame) => exame.status === 'ENTREGUE'
+    ).length
+    return Math.round((entregues / examesVisiveis.length) * 100)
+  }, [examesVisiveis])
 
   const coresPie = ['#0d6efd', '#20c997', '#ffc107', '#dc3545', '#6c757d']
+
+  const formatarData = (data) => {
+    if (!data) return '-'
+    return new Date(data).toLocaleDateString('pt-BR')
+  }
+
+  const formatarHora = (hora) => {
+    if (!hora) return '-'
+    return String(hora).slice(0, 5)
+  }
+
+  const formatarDataHora = (data) => {
+    if (!data) return '-'
+    return new Date(data).toLocaleString('pt-BR')
+  }
+
+  const redirecionarPara = (rota) => {
+    window.location.href = rota
+  }
+
+  const handleCheckInRapido = async (consultaId) => {
+    try {
+      setErro('')
+      setSucesso('')
+      setLoadingCheckInId(consultaId)
+
+      await realizarCheckInConsulta(consultaId)
+      setSucesso('Check-in realizado com sucesso!')
+      carregarDashboard()
+    } catch (error) {
+      console.error('Erro ao realizar check-in:', error)
+      setErro(
+        error.response?.data?.erro ||
+          error.response?.data?.message ||
+          'Erro ao realizar check-in.'
+      )
+    } finally {
+      setLoadingCheckInId(null)
+    }
+  }
 
   const renderMetricCard = ({
     icon,
@@ -362,7 +547,7 @@ function DashboardPage() {
       {renderMetricCard({
         icon: <FaFlask />,
         titulo: 'Exames',
-        valor: exames.length,
+        valor: examesVisiveis.length,
         descricao: 'Exames vinculados',
         variantClass: 'stat-yellow',
         trendText: 'Em acompanhamento'
@@ -370,7 +555,7 @@ function DashboardPage() {
       {renderMetricCard({
         icon: <FaNotesMedical />,
         titulo: 'Prontuários',
-        valor: prontuarios.length,
+        valor: prontuariosVisiveis.length,
         descricao: 'Registros clínicos',
         variantClass: 'stat-blue',
         trendText: 'Atualizados'
@@ -395,7 +580,7 @@ function DashboardPage() {
               <FaCalendarCheck />
             </div>
             <h6 className="mt-3">Consultas</h6>
-            <h2 className="fw-bold">{consultas.length}</h2>
+            <h2 className="fw-bold">{consultasVisiveis.length}</h2>
             <p className="text-muted mb-0">Minhas consultas</p>
           </Card.Body>
         </Card>
@@ -408,7 +593,7 @@ function DashboardPage() {
               <FaFlask />
             </div>
             <h6 className="mt-3">Exames</h6>
-            <h2 className="fw-bold">{exames.length}</h2>
+            <h2 className="fw-bold">{examesVisiveis.length}</h2>
             <p className="text-muted mb-0">Meus exames</p>
           </Card.Body>
         </Card>
@@ -421,7 +606,7 @@ function DashboardPage() {
               <FaNotesMedical />
             </div>
             <h6 className="mt-3">Prontuários</h6>
-            <h2 className="fw-bold">{prontuarios.length}</h2>
+            <h2 className="fw-bold">{prontuariosVisiveis.length}</h2>
             <p className="text-muted mb-0">Meu histórico clínico</p>
           </Card.Body>
         </Card>
@@ -446,14 +631,16 @@ function DashboardPage() {
                     {item.paciente_nome || 'Paciente'} / {item.medico_nome || 'Médico'}
                   </div>
                   <small className="text-muted">
-                    {item.data_consulta ? new Date(item.data_consulta).toLocaleDateString('pt-BR') : '-'}
+                    {item.data_consulta
+                      ? new Date(item.data_consulta).toLocaleDateString('pt-BR')
+                      : '-'}
                   </small>
                 </>
               )}
 
               {tipo === 'exame' && (
                 <>
-                  <strong>{item.nome_exame}</strong>
+                  <strong>{item.nome_exame || `Exame #${item.id}`}</strong>
                   <div className="text-muted">
                     {item.paciente_nome || 'Paciente'} / {item.medico_nome || 'Médico'}
                   </div>
@@ -468,7 +655,9 @@ function DashboardPage() {
                     {item.paciente_nome || 'Paciente'} / {item.medico_nome || 'Médico'}
                   </div>
                   <small className="text-muted">
-                    {item.created_at ? new Date(item.created_at).toLocaleDateString('pt-BR') : '-'}
+                    {item.created_at
+                      ? new Date(item.created_at).toLocaleDateString('pt-BR')
+                      : '-'}
                   </small>
                 </>
               )}
@@ -578,6 +767,138 @@ function DashboardPage() {
     </Card>
   )
 
+  const renderStatusBadge = (status) => {
+    switch (status) {
+      case 'AGENDADA':
+        return <Badge bg="primary">{status}</Badge>
+      case 'CONFIRMADA':
+        return <Badge bg="info">{status}</Badge>
+      case 'REALIZADA':
+        return <Badge bg="success">{status}</Badge>
+      case 'CANCELADA':
+        return <Badge bg="danger">{status}</Badge>
+      case 'FALTOU':
+        return (
+          <Badge bg="warning" text="dark">
+            {status}
+          </Badge>
+        )
+      default:
+        return <Badge bg="secondary">{status || 'SEM STATUS'}</Badge>
+    }
+  }
+
+  const renderCheckInBadge = (consulta) => {
+    if (consulta?.checkin_realizado) {
+      return <Badge bg="success">Realizado</Badge>
+    }
+
+    return <Badge bg="secondary">Pendente</Badge>
+  }
+
+  const podeFazerCheckIn = (consulta) => {
+    return (
+      perfil === 'PACIENTE' &&
+      consulta &&
+      !consulta.checkin_realizado &&
+      consulta.status !== 'CANCELADA' &&
+      consulta.status !== 'REALIZADA' &&
+      consulta.status !== 'FALTOU'
+    )
+  }
+
+  const renderCardProximaConsultaPaciente = () => (
+    <Card className="content-card p-4 border-0 shadow-sm rounded-4 h-100">
+      <div className="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <h4 className="fw-bold mb-1">Próxima consulta</h4>
+          <p className="text-muted mb-0">
+            Veja os detalhes do seu próximo atendimento.
+          </p>
+        </div>
+
+        <div className="stat-icon">
+          <FaCalendarCheck />
+        </div>
+      </div>
+
+      {!proximaConsultaPaciente ? (
+        <div className="text-muted">
+          Você não possui consultas futuras agendadas no momento.
+        </div>
+      ) : (
+        <>
+          <div className="mb-3">
+            <p className="mb-2">
+              <strong>Médico:</strong> {proximaConsultaPaciente.medico_nome || '-'}
+            </p>
+            <p className="mb-2">
+              <strong>Data:</strong> {formatarData(proximaConsultaPaciente.data_consulta)}
+            </p>
+            <p className="mb-2">
+              <strong>Horário:</strong> {formatarHora(proximaConsultaPaciente.hora_consulta)}
+            </p>
+            <p className="mb-2">
+              <strong>Status:</strong> {renderStatusBadge(proximaConsultaPaciente.status)}
+            </p>
+            <p className="mb-0">
+              <strong>Check-in:</strong>{' '}
+              {renderCheckInBadge(proximaConsultaPaciente)}
+            </p>
+          </div>
+
+          {proximaConsultaPaciente.data_checkin && (
+            <Alert variant="success" className="py-2">
+              Check-in registrado em {formatarDataHora(proximaConsultaPaciente.data_checkin)}.
+            </Alert>
+          )}
+
+          <div className="d-flex flex-wrap gap-2 mt-3">
+            {podeFazerCheckIn(proximaConsultaPaciente) && (
+              <Button
+                variant="success"
+                onClick={() => handleCheckInRapido(proximaConsultaPaciente.id)}
+                disabled={loadingCheckInId === proximaConsultaPaciente.id}
+              >
+                {loadingCheckInId === proximaConsultaPaciente.id
+                  ? 'Processando...'
+                  : 'Fazer Check-in'}
+              </Button>
+            )}
+
+            <Button variant="outline-primary" onClick={() => redirecionarPara('/consultas')}>
+              Ver minhas consultas
+            </Button>
+          </div>
+        </>
+      )}
+    </Card>
+  )
+
+  const renderAcoesRapidasPaciente = () => (
+    <Card className="content-card p-4 border-0 shadow-sm rounded-4 h-100">
+      <h4 className="fw-bold mb-3">Ações rápidas</h4>
+
+      <div className="d-grid gap-3">
+        <Button variant="outline-primary" onClick={() => redirecionarPara('/consultas')}>
+          Minhas Consultas
+        </Button>
+
+        <Button variant="outline-warning" onClick={() => redirecionarPara('/exames')}>
+          Meus Exames
+        </Button>
+
+        <Button variant="outline-info" onClick={() => redirecionarPara('/prontuarios')}>
+          Meu Histórico Clínico
+        </Button>
+
+        <Button variant="outline-success" onClick={() => redirecionarPara('/prescricoes')}>
+          Minhas Prescrições
+        </Button>
+      </div>
+    </Card>
+  )
+
   return (
     <MainLayout>
       <div className="dashboard-header mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
@@ -596,6 +917,7 @@ function DashboardPage() {
       </div>
 
       {erro && <Alert variant="danger">{erro}</Alert>}
+      {sucesso && <Alert variant="success">{sucesso}</Alert>}
 
       {loading ? (
         <div className="d-flex justify-content-center py-5">
@@ -607,6 +929,13 @@ function DashboardPage() {
           {perfil === 'MEDICO' && renderCardsMedico()}
           {perfil === 'PACIENTE' && renderCardsPaciente()}
 
+          {perfil === 'PACIENTE' && (
+            <Row className="g-4 mt-2">
+              <Col lg={7}>{renderCardProximaConsultaPaciente()}</Col>
+              <Col lg={5}>{renderAcoesRapidasPaciente()}</Col>
+            </Row>
+          )}
+
           <Row className="g-4 mt-2">
             <Col lg={8}>{renderGraficoConsultas()}</Col>
             <Col lg={4}>{renderNotificacoes()}</Col>
@@ -614,20 +943,19 @@ function DashboardPage() {
 
           <Row className="g-4 mt-2">
             <Col lg={7}>
-              {perfil === 'SECRETARIO' && renderLista('Últimas consultas', ultimasConsultas, 'consulta')}
-              {perfil === 'MEDICO' && renderLista('Últimos prontuários', ultimosProntuarios, 'prontuario')}
-              {perfil === 'PACIENTE' && renderLista('Meus exames recentes', ultimosExames, 'exame')}
+              {perfil === 'SECRETARIO' &&
+                renderLista('Últimas consultas', ultimasConsultas, 'consulta')}
+              {perfil === 'MEDICO' &&
+                renderLista('Últimos prontuários', ultimosProntuarios, 'prontuario')}
+              {perfil === 'PACIENTE' &&
+                renderLista('Meus exames recentes', ultimosExames, 'exame')}
             </Col>
 
-            <Col lg={5}>
-              {renderGraficoExames()}
-            </Col>
+            <Col lg={5}>{renderGraficoExames()}</Col>
           </Row>
 
           <Row className="g-4 mt-2">
-            <Col lg={6}>
-              {renderIndicadores()}
-            </Col>
+            <Col lg={6}>{renderIndicadores()}</Col>
 
             <Col lg={6}>
               <Card className="content-card p-4 h-100 border-0 shadow-sm rounded-4">
@@ -643,7 +971,13 @@ function DashboardPage() {
                 <p className="mb-2">
                   <strong>Perfil:</strong> {perfil}
                 </p>
-                {(perfil === 'MEDICO' || perfil === 'PACIENTE') && (
+                {perfil === 'PACIENTE' && (
+                  <p className="mb-0 text-muted">
+                    Área personalizada com acesso rápido às suas consultas, exames,
+                    prescrições e acompanhamento do check-in online.
+                  </p>
+                )}
+                {perfil === 'MEDICO' && (
                   <p className="mb-0 text-muted">
                     Área personalizada com informações relevantes para seu acompanhamento diário.
                   </p>
@@ -675,8 +1009,9 @@ function DashboardPage() {
 
                 {perfil === 'PACIENTE' && (
                   <p className="mb-0 text-muted">
-                    Aqui você acompanha suas consultas, exames e prontuários de forma simples,
-                    moderna e organizada.
+                    Aqui você acompanha sua próxima consulta, verifica o status do check-in,
+                    acessa rapidamente exames, prescrições e histórico clínico em um ambiente
+                    mais simples, moderno e organizado.
                   </p>
                 )}
               </Card>

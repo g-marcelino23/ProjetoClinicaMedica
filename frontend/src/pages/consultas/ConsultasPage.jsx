@@ -18,7 +18,8 @@ import {
   listarConsultas,
   criarConsulta,
   atualizarConsulta,
-  excluirConsulta as excluirConsultaApi
+  excluirConsulta as excluirConsultaApi,
+  realizarCheckInConsulta
 } from '../../services/consultaService'
 
 function ConsultasPage() {
@@ -39,6 +40,7 @@ function ConsultasPage() {
   const [showModal, setShowModal] = useState(false)
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [busca, setBusca] = useState('')
+  const [loadingCheckInId, setLoadingCheckInId] = useState(null)
 
   const [formData, setFormData] = useState({
     paciente_id: '',
@@ -53,8 +55,7 @@ function ConsultasPage() {
   const [consultaSelecionada, setConsultaSelecionada] = useState(null)
   const [statusData, setStatusData] = useState({
     status: '',
-    observacoes: '',
-    checkin_realizado: false
+    observacoes: ''
   })
 
   const podeCriarConsulta = perfil === 'SECRETARIO' || perfil === 'PACIENTE'
@@ -171,6 +172,11 @@ function ConsultasPage() {
     return String(hora).slice(0, 5)
   }
 
+  const formatarDataHoraCheckIn = (data) => {
+    if (!data) return ''
+    return new Date(data).toLocaleString('pt-BR')
+  }
+
   const limparFormulario = () => {
     setFormData({
       paciente_id:
@@ -213,8 +219,7 @@ function ConsultasPage() {
     setConsultaSelecionada(consulta)
     setStatusData({
       status: perfil === 'PACIENTE' ? 'CANCELADA' : consulta.status || 'AGENDADA',
-      observacoes: consulta.observacoes || '',
-      checkin_realizado: !!consulta.checkin_realizado
+      observacoes: consulta.observacoes || ''
     })
     setShowStatusModal(true)
   }
@@ -222,6 +227,10 @@ function ConsultasPage() {
   const fecharModalStatus = () => {
     setShowStatusModal(false)
     setConsultaSelecionada(null)
+    setStatusData({
+      status: '',
+      observacoes: ''
+    })
   }
 
   const handleChange = (e) => {
@@ -245,11 +254,11 @@ function ConsultasPage() {
   }
 
   const handleStatusChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value } = e.target
 
     setStatusData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }))
   }
 
@@ -334,14 +343,14 @@ function ConsultasPage() {
 
       await atualizarConsulta(consultaSelecionada.id, {
         status: statusData.status,
-        observacoes: statusData.observacoes,
-        checkin_realizado:
-          perfil === 'PACIENTE'
-            ? consultaSelecionada.checkin_realizado
-            : statusData.checkin_realizado
+        observacoes: statusData.observacoes
       })
 
-      setSucesso('Consulta atualizada com sucesso!')
+      setSucesso(
+        perfil === 'PACIENTE'
+          ? 'Consulta cancelada com sucesso!'
+          : 'Consulta atualizada com sucesso!'
+      )
       fecharModalStatus()
       carregarDados()
     } catch (error) {
@@ -353,6 +362,30 @@ function ConsultasPage() {
         'Erro ao atualizar consulta.'
 
       setErro(mensagem)
+    }
+  }
+
+  const handleCheckIn = async (consultaId) => {
+    try {
+      setErro('')
+      setSucesso('')
+      setLoadingCheckInId(consultaId)
+
+      await realizarCheckInConsulta(consultaId)
+
+      setSucesso('Check-in realizado com sucesso!')
+      carregarDados()
+    } catch (error) {
+      console.error('Erro no check-in:', error)
+
+      const mensagem =
+        error.response?.data?.erro ||
+        error.response?.data?.message ||
+        'Erro ao realizar check-in.'
+
+      setErro(mensagem)
+    } finally {
+      setLoadingCheckInId(null)
     }
   }
 
@@ -405,12 +438,41 @@ function ConsultasPage() {
     }
   }
 
+  const renderCheckInBadge = (consulta) => {
+    if (consulta.checkin_realizado) {
+      return (
+        <div className="d-flex flex-column gap-1">
+          <Badge bg="success">Realizado</Badge>
+          {consulta.data_checkin && (
+            <small className="text-muted">
+              {formatarDataHoraCheckIn(consulta.data_checkin)}
+            </small>
+          )}
+        </div>
+      )
+    }
+
+    return <Badge bg="secondary">Pendente</Badge>
+  }
+
+  const podeFazerCheckIn = (consulta) => {
+    return (
+      perfil === 'PACIENTE' &&
+      !consulta.checkin_realizado &&
+      consulta.status !== 'CANCELADA' &&
+      consulta.status !== 'REALIZADA' &&
+      consulta.status !== 'FALTOU'
+    )
+  }
+
   return (
     <MainLayout>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
           <h1 className="page-title">Consultas</h1>
-          <p className="page-subtitle">Gerencie as consultas agendadas no sistema.</p>
+          <p className="page-subtitle">
+            Gerencie as consultas agendadas no sistema.
+          </p>
         </div>
 
         <div className="d-flex gap-2">
@@ -469,9 +531,23 @@ function ConsultasPage() {
                       <td>{formatarHora(consulta.hora_consulta)}</td>
                       <td>{consulta.motivo || '-'}</td>
                       <td>{renderStatusBadge(consulta.status)}</td>
-                      <td>{consulta.checkin_realizado ? 'Sim' : 'Não'}</td>
+                      <td>{renderCheckInBadge(consulta)}</td>
                       <td className="text-center">
-                        <div className="d-flex justify-content-center gap-2">
+                        <div className="d-flex justify-content-center gap-2 flex-wrap">
+                          {podeFazerCheckIn(consulta) && (
+                            <Button
+                              variant="success"
+                              size="sm"
+                              className="rounded-3"
+                              onClick={() => handleCheckIn(consulta.id)}
+                              disabled={loadingCheckInId === consulta.id}
+                            >
+                              {loadingCheckInId === consulta.id
+                                ? 'Processando...'
+                                : 'Check-in'}
+                            </Button>
+                          )}
+
                           {podeAtualizarConsulta && (
                             <Button
                               variant="outline-primary"
@@ -682,18 +758,6 @@ function ConsultasPage() {
                   />
                 </Form.Group>
               </Col>
-
-              {perfil !== 'PACIENTE' && (
-                <Col md={12}>
-                  <Form.Check
-                    type="checkbox"
-                    label="Check-in realizado"
-                    name="checkin_realizado"
-                    checked={statusData.checkin_realizado}
-                    onChange={handleStatusChange}
-                  />
-                </Col>
-              )}
             </Row>
           </Modal.Body>
 

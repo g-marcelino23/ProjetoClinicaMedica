@@ -79,8 +79,8 @@ function Sidebar() {
 
   return (
     <aside className="sidebar text-white d-flex flex-column p-4">
-      <div className="mb-5">
-        <h2 className="fw-bold mb-1">Clinical Med</h2>
+      <div className="mb-1">
+        <h2 className="fw-bold mb-1">HEALTH HORIZON</h2>
         <small style={{ color: '#cbd5e1' }}>Sistema de gestão clínica</small>
       </div>
 

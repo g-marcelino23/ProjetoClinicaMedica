@@ -51,8 +51,19 @@ const criarConsulta = async (req, res) => {
 
     const result = await client.query(
       `INSERT INTO consultas
-      (paciente_id, medico_id, agenda_id, data_consulta, hora_consulta, motivo, status, observacoes, checkin_realizado)
-      VALUES ($1, $2, $3, $4, $5, $6, 'AGENDADA', $7, false)
+      (
+        paciente_id,
+        medico_id,
+        agenda_id,
+        data_consulta,
+        hora_consulta,
+        motivo,
+        status,
+        observacoes,
+        checkin_realizado,
+        data_checkin
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, 'AGENDADA', $7, false, null)
       RETURNING *`,
       [
         paciente_id,
@@ -100,7 +111,9 @@ const listarConsultas = async (req, res) => {
         c.status,
         c.observacoes,
         c.checkin_realizado,
-        c.created_at
+        c.data_checkin,
+        c.created_at,
+        c.updated_at
       FROM consultas c
       JOIN pacientes p ON p.id = c.paciente_id
       JOIN usuarios up ON up.id = p.usuario_id
@@ -109,9 +122,9 @@ const listarConsultas = async (req, res) => {
       ORDER BY c.data_consulta, c.hora_consulta
     `)
 
-    res.json(result.rows)
+    return res.json(result.rows)
   } catch (error) {
-    res.status(500).json({ erro: error.message })
+    return res.status(500).json({ erro: error.message })
   }
 }
 
@@ -134,14 +147,16 @@ const buscarConsultaPorId = async (req, res) => {
         c.status,
         c.observacoes,
         c.checkin_realizado,
-        c.created_at
+        c.data_checkin,
+        c.created_at,
+        c.updated_at
       FROM consultas c
       JOIN pacientes p ON p.id = c.paciente_id
       JOIN usuarios up ON up.id = p.usuario_id
       JOIN medicos m ON m.id = c.medico_id
       JOIN usuarios um ON um.id = m.usuario_id
       WHERE c.id = $1
-    `,
+      `,
       [id]
     )
 
@@ -149,9 +164,98 @@ const buscarConsultaPorId = async (req, res) => {
       return res.status(404).json({ erro: 'Consulta não encontrada' })
     }
 
-    res.json(result.rows[0])
+    return res.json(result.rows[0])
   } catch (error) {
-    res.status(500).json({ erro: error.message })
+    return res.status(500).json({ erro: error.message })
+  }
+}
+
+const realizarCheckIn = async (req, res) => {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const { id } = req.params
+    const usuarioLogadoId = req.usuario.id
+    const perfilLogado = req.usuario.perfil
+
+    if (perfilLogado !== 'PACIENTE') {
+      await client.query('ROLLBACK')
+      return res.status(403).json({
+        erro: 'Apenas pacientes podem realizar check-in online'
+      })
+    }
+
+    const consultaResult = await client.query(
+      `
+      SELECT
+        c.*,
+        p.usuario_id
+      FROM consultas c
+      JOIN pacientes p ON p.id = c.paciente_id
+      WHERE c.id = $1
+      `,
+      [id]
+    )
+
+    if (consultaResult.rows.length === 0) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ erro: 'Consulta não encontrada' })
+    }
+
+    const consulta = consultaResult.rows[0]
+
+    if (consulta.usuario_id !== usuarioLogadoId) {
+      await client.query('ROLLBACK')
+      return res.status(403).json({
+        erro: 'Você não tem permissão para realizar check-in nesta consulta'
+      })
+    }
+
+    if (consulta.checkin_realizado) {
+      await client.query('ROLLBACK')
+      return res.status(400).json({
+        erro: 'Check-in já realizado para esta consulta'
+      })
+    }
+
+    if (
+      consulta.status === 'CANCELADA' ||
+      consulta.status === 'REALIZADA' ||
+      consulta.status === 'FALTOU'
+    ) {
+      await client.query('ROLLBACK')
+      return res.status(400).json({
+        erro: 'Não é possível realizar check-in nesta consulta'
+      })
+    }
+
+    const result = await client.query(
+      `
+      UPDATE consultas
+      SET
+        checkin_realizado = true,
+        data_checkin = CURRENT_TIMESTAMP,
+        status = 'CONFIRMADA',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *
+      `,
+      [id]
+    )
+
+    await client.query('COMMIT')
+
+    return res.json({
+      mensagem: 'Check-in realizado com sucesso',
+      consulta: result.rows[0]
+    })
+  } catch (error) {
+    await client.query('ROLLBACK')
+    return res.status(500).json({ erro: error.message })
+  } finally {
+    client.release()
   }
 }
 
@@ -162,7 +266,7 @@ const atualizarStatusConsulta = async (req, res) => {
     await client.query('BEGIN')
 
     const { id } = req.params
-    const { status, observacoes, checkin_realizado } = req.body
+    const { status, observacoes } = req.body
 
     const consultaExiste = await client.query(
       'SELECT * FROM consultas WHERE id = $1',
@@ -180,11 +284,10 @@ const atualizarStatusConsulta = async (req, res) => {
       `UPDATE consultas
        SET status = $1,
            observacoes = $2,
-           checkin_realizado = $3,
            updated_at = CURRENT_TIMESTAMP
-       WHERE id = $4
+       WHERE id = $3
        RETURNING *`,
-      [status, observacoes, checkin_realizado, id]
+      [status, observacoes, id]
     )
 
     if (consulta.agenda_id) {
@@ -205,13 +308,13 @@ const atualizarStatusConsulta = async (req, res) => {
 
     await client.query('COMMIT')
 
-    res.json({
+    return res.json({
       mensagem: 'Consulta atualizada com sucesso',
       consulta: result.rows[0]
     })
   } catch (error) {
     await client.query('ROLLBACK')
-    res.status(500).json({ erro: error.message })
+    return res.status(500).json({ erro: error.message })
   } finally {
     client.release()
   }
@@ -248,10 +351,10 @@ const deletarConsulta = async (req, res) => {
 
     await client.query('COMMIT')
 
-    res.json({ mensagem: 'Consulta deletada com sucesso' })
+    return res.json({ mensagem: 'Consulta deletada com sucesso' })
   } catch (error) {
     await client.query('ROLLBACK')
-    res.status(500).json({ erro: error.message })
+    return res.status(500).json({ erro: error.message })
   } finally {
     client.release()
   }
@@ -261,6 +364,7 @@ module.exports = {
   criarConsulta,
   listarConsultas,
   buscarConsultaPorId,
+  realizarCheckIn,
   atualizarStatusConsulta,
   deletarConsulta
 }
