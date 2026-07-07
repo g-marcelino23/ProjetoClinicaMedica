@@ -15,7 +15,7 @@ router.post(
 router.get(
     '/',
     authMiddleware,
-    roleMiddleware(['SECRETARIO']),
+    roleMiddleware(['SECRETARIO', 'PACIENTE']),
     listaEsperaController.listarListaEspera
 );
 
@@ -38,6 +38,13 @@ router.put(
     authMiddleware,
     roleMiddleware(['SECRETARIO']),
     listaEsperaController.encerrarItemListaEspera
+);
+
+router.put(
+    '/:id/cancelar',
+    authMiddleware,
+    roleMiddleware(['SECRETARIO']),
+    listaEsperaController.cancelarItemListaEspera
 );
 
 module.exports = router;

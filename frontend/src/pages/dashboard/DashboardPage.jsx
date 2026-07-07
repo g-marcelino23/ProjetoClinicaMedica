@@ -47,6 +47,8 @@ import { listarProntuarios } from '../../services/prontuariosService'
 import { listarAgendas } from '../../services/agendaService'
 import { listarPacientes } from '../../services/pacientesService'
 import { listarMedicos } from '../../services/medicosService'
+import { listarListaEspera } from '../../services/listaEsperaService'
+import { obterResumoDashboard } from '../../services/dashboardService'
 
 function DashboardPage() {
   const { user } = useAuth()
@@ -62,6 +64,8 @@ function DashboardPage() {
   const [agendas, setAgendas] = useState([])
   const [pacientes, setPacientes] = useState([])
   const [medicos, setMedicos] = useState([])
+  const [listaEspera, setListaEspera] = useState([])
+  const [resumoGerencial, setResumoGerencial] = useState(null)
 
   const perfil = user?.perfil || 'SECRETARIO'
   const pacienteIdLogado = user?.paciente_id || null
@@ -84,14 +88,16 @@ function DashboardPage() {
           dadosProntuarios,
           dadosAgendas,
           dadosPacientes,
-          dadosMedicos
+          dadosMedicos,
+          dadosResumoGerencial
         ] = await Promise.all([
           listarConsultas(),
           listarExames(),
           listarProntuarios(),
           listarAgendas(),
           listarPacientes(),
-          listarMedicos()
+          listarMedicos(),
+          obterResumoDashboard()
         ])
 
         setConsultas(Array.isArray(dadosConsultas) ? dadosConsultas : [])
@@ -100,6 +106,8 @@ function DashboardPage() {
         setAgendas(Array.isArray(dadosAgendas) ? dadosAgendas : [])
         setPacientes(Array.isArray(dadosPacientes) ? dadosPacientes : [])
         setMedicos(Array.isArray(dadosMedicos) ? dadosMedicos : [])
+        setResumoGerencial(dadosResumoGerencial || null)
+        setListaEspera([])
       } else if (perfil === 'MEDICO') {
         const [dadosConsultas, dadosExames, dadosProntuarios, dadosAgendas] =
           await Promise.all([
@@ -115,19 +123,29 @@ function DashboardPage() {
         setAgendas(Array.isArray(dadosAgendas) ? dadosAgendas : [])
         setPacientes([])
         setMedicos([])
+        setListaEspera([])
+        setResumoGerencial(null)
       } else if (perfil === 'PACIENTE') {
-        const [dadosConsultas, dadosExames, dadosProntuarios] = await Promise.all([
+        const [
+          dadosConsultas,
+          dadosExames,
+          dadosProntuarios,
+          dadosListaEspera
+        ] = await Promise.all([
           listarConsultas(),
           listarExames(),
-          listarProntuarios()
+          listarProntuarios(),
+          listarListaEspera()
         ])
 
         setConsultas(Array.isArray(dadosConsultas) ? dadosConsultas : [])
         setExames(Array.isArray(dadosExames) ? dadosExames : [])
         setProntuarios(Array.isArray(dadosProntuarios) ? dadosProntuarios : [])
+        setListaEspera(Array.isArray(dadosListaEspera) ? dadosListaEspera : [])
         setAgendas([])
         setPacientes([])
         setMedicos([])
+        setResumoGerencial(null)
       }
     } catch (error) {
       console.error('Erro ao carregar dashboard:', error)
@@ -243,29 +261,6 @@ function DashboardPage() {
     return [...prontuariosVisiveis].slice(0, 5)
   }, [prontuariosVisiveis])
 
-  const consultasPorStatus = useMemo(() => {
-    const base = {
-      AGENDADA: 0,
-      CONFIRMADA: 0,
-      REALIZADA: 0,
-      CANCELADA: 0,
-      FALTOU: 0
-    }
-
-    consultasVisiveis.forEach((consulta) => {
-      const status = consulta.status || 'AGENDADA'
-      if (base[status] !== undefined) base[status] += 1
-    })
-
-    return [
-      { nome: 'Agendada', valor: base.AGENDADA },
-      { nome: 'Confirmada', valor: base.CONFIRMADA },
-      { nome: 'Realizada', valor: base.REALIZADA },
-      { nome: 'Cancelada', valor: base.CANCELADA },
-      { nome: 'Faltou', valor: base.FALTOU }
-    ]
-  }, [consultasVisiveis])
-
   const examesPorStatus = useMemo(() => {
     const base = {
       SOLICITADO: 0,
@@ -350,8 +345,21 @@ function DashboardPage() {
     return consultasFuturas[0] || null
   }, [perfil, consultasVisiveis])
 
+  const chamadosListaEsperaPaciente = useMemo(() => {
+    if (perfil !== 'PACIENTE') return []
+
+    return listaEspera.filter((item) => item.status === 'CHAMADO')
+  }, [perfil, listaEspera])
+
   const notificacoes = useMemo(() => {
     const lista = []
+
+    if (perfil === 'PACIENTE' && chamadosListaEsperaPaciente.length > 0) {
+      lista.unshift({
+        tipo: 'success',
+        texto: 'Você foi chamado na lista de espera. Veja o aviso no dashboard.'
+      })
+    }
 
     if (consultasHoje.length > 0) {
       lista.push({
@@ -406,7 +414,8 @@ function DashboardPage() {
     examesPendentes.length,
     consultasVisiveis,
     perfil,
-    proximaConsultaPaciente
+    proximaConsultaPaciente,
+    chamadosListaEsperaPaciente.length
   ])
 
   const percentualConsultasRealizadas = useMemo(() => {
@@ -501,32 +510,34 @@ function DashboardPage() {
       {renderMetricCard({
         icon: <FaUserInjured />,
         titulo: 'Pacientes',
-        valor: pacientes.length,
+        valor: resumoGerencial?.pacientes ?? pacientes.length,
         descricao: 'Pacientes cadastrados',
         variantClass: 'stat-blue',
         trendText: 'Base ativa'
       })}
+
       {renderMetricCard({
         icon: <FaCalendarCheck />,
         titulo: 'Consultas',
-        valor: consultasHoje.length,
-        descricao: 'Consultas hoje',
+        valor: resumoGerencial?.consultas ?? consultas.length,
+        descricao: 'Consultas cadastradas',
         variantClass: 'stat-green',
-        trendText: 'Hoje'
+        trendText: 'Geral'
       })}
+
       {renderMetricCard({
         icon: <FaFlask />,
         titulo: 'Exames',
-        valor: examesPendentes.length,
-        descricao: 'Exames pendentes',
+        valor: resumoGerencial?.exames ?? exames.length,
+        descricao: 'Exames cadastrados',
         variantClass: 'stat-yellow',
-        trendText: 'Atenção',
-        trendPositive: false
+        trendText: 'Controle'
       })}
+
       {renderMetricCard({
         icon: <FaUserMd />,
         titulo: 'Médicos',
-        valor: medicos.length,
+        valor: resumoGerencial?.medicos ?? medicos.length,
         descricao: 'Médicos cadastrados',
         variantClass: 'stat-red',
         trendText: 'Equipe'
@@ -613,6 +624,65 @@ function DashboardPage() {
       </Col>
     </Row>
   )
+
+  const renderAvisoListaEsperaPaciente = () => {
+    if (perfil !== 'PACIENTE' || chamadosListaEsperaPaciente.length === 0) {
+      return null
+    }
+
+    return (
+      <Alert variant="success" className="border-0 shadow-sm rounded-4 p-4 mb-4">
+        <div className="d-flex align-items-start gap-3">
+          <div className="fs-3">
+            <FaCheckCircle />
+          </div>
+
+          <div>
+            <h4 className="fw-bold mb-2">
+              Você foi chamado na lista de espera!
+            </h4>
+
+            <p className="mb-3">
+              A clínica sinalizou disponibilidade para um atendimento solicitado.
+              Confira as informações abaixo e aguarde o contato da secretaria ou
+              entre em contato para confirmar o agendamento.
+            </p>
+
+            {chamadosListaEsperaPaciente.map((item) => (
+              <div key={item.id} className="bg-white rounded-4 p-3 mb-2">
+                <p className="mb-1">
+                  <strong>Médico:</strong> {item.medico_nome || 'Não informado'}
+                </p>
+
+                <p className="mb-1">
+                  <strong>Especialidade:</strong> {item.especialidade || 'Não informada'}
+                </p>
+
+                <p className="mb-1">
+                  <strong>Data desejada:</strong> {formatarData(item.data_desejada)}
+                </p>
+
+                <p className="mb-0">
+                  <strong>Status:</strong>{' '}
+                  <Badge bg="success">
+                    {item.status}
+                  </Badge>
+                </p>
+              </div>
+            ))}
+
+            <Button
+              variant="success"
+              className="mt-3"
+              onClick={() => redirecionarPara('/consultas')}
+            >
+              Ver minhas consultas
+            </Button>
+          </div>
+        </div>
+      </Alert>
+    )
+  }
 
   const renderLista = (titulo, itens, tipo) => (
     <Card className="content-card p-4 h-100 border-0 shadow-sm rounded-4">
@@ -925,6 +995,8 @@ function DashboardPage() {
         </div>
       ) : (
         <>
+          {renderAvisoListaEsperaPaciente()}
+
           {perfil === 'SECRETARIO' && renderCardsSecretario()}
           {perfil === 'MEDICO' && renderCardsMedico()}
           {perfil === 'PACIENTE' && renderCardsPaciente()}
@@ -996,7 +1068,7 @@ function DashboardPage() {
                 {perfil === 'SECRETARIO' && (
                   <p className="mb-0 text-muted">
                     Você possui uma visão ampla da clínica, com acompanhamento de pacientes,
-                    médicos, consultas, exames, agenda e indicadores operacionais.
+                    médicos, consultas, exames, agenda, lista de espera e indicadores operacionais.
                   </p>
                 )}
 
@@ -1010,8 +1082,8 @@ function DashboardPage() {
                 {perfil === 'PACIENTE' && (
                   <p className="mb-0 text-muted">
                     Aqui você acompanha sua próxima consulta, verifica o status do check-in,
-                    acessa rapidamente exames, prescrições e histórico clínico em um ambiente
-                    mais simples, moderno e organizado.
+                    acessa rapidamente exames, prescrições, histórico clínico e avisos da lista
+                    de espera em um ambiente mais simples, moderno e organizado.
                   </p>
                 )}
               </Card>

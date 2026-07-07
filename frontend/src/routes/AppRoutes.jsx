@@ -13,6 +13,9 @@ import CadastroPacientePage from '../pages/CadastroPacientePage'
 import CadastroMedicoPage from '../pages/CadastroMedicoPage'
 import CadastroSecretarioPage from '../pages/CadastroSecretarioPage'
 import PrescricoesPage from '../pages/PrescricoesPage'
+import ListaEspera from '../pages/ListaEspera'
+import Indicadores from '../pages/indicadores/Indicadores'
+import Relatorios from '../pages/relatorios/Relatorios'
 
 function AppRoutes() {
   return (
@@ -96,6 +99,33 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+
+        <Route
+          path="/lista-espera"
+          element={
+            <ProtectedRoute allowedRoles={['SECRETARIO']}>
+              <ListaEspera />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/indicadores"
+          element={
+            <ProtectedRoute allowedRoles={['SECRETARIO']}>
+              <Indicadores />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+  path="/relatorios"
+  element={
+    <ProtectedRoute allowedRoles={['SECRETARIO']}>
+      <Relatorios />
+    </ProtectedRoute>
+  }
+/>
 
         <Route path="/register" element={<RegisterPage />} />
 

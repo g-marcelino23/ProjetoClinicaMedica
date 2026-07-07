@@ -10,6 +10,9 @@ import {
   FaFlask,
   FaNotesMedical,
   FaSignOutAlt,
+  FaListUl,
+  FaChartLine,
+  FaFileAlt,
 } from 'react-icons/fa'
 
 function Sidebar() {
@@ -51,6 +54,24 @@ function Sidebar() {
       roles: ['SECRETARIO', 'MEDICO', 'PACIENTE'],
     },
     {
+      path: '/lista-espera',
+      label: 'Lista de Espera',
+      icon: <FaListUl />,
+      roles: ['SECRETARIO'],
+    },
+    {
+      path: '/indicadores',
+      label: 'Indicadores',
+      icon: <FaChartLine />,
+      roles: ['SECRETARIO'],
+    },
+    {
+      path: '/relatorios',
+      label: 'Relatórios',
+      icon: <FaFileAlt />,
+      roles: ['SECRETARIO'],
+    },
+    {
       path: '/exames',
       label: 'Exames',
       icon: <FaFlask />,
@@ -62,12 +83,12 @@ function Sidebar() {
       icon: <FaNotesMedical />,
       roles: ['SECRETARIO', 'MEDICO', 'PACIENTE'],
     },
-
     {
-  label: 'Prescrições',
-  path: '/prescricoes',
-  roles: ['MEDICO', 'SECRETARIO','PACIENTE'],
-}
+      path: '/prescricoes',
+      label: 'Prescrições',
+      icon: <FaNotesMedical />,
+      roles: ['MEDICO', 'SECRETARIO', 'PACIENTE'],
+    },
   ]
 
   const menuFiltrado = menuItems.filter((item) => item.roles.includes(perfil))
