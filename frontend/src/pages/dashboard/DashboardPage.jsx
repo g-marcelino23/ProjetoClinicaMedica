@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Card,
   Col,
@@ -23,7 +23,9 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaCheckCircle,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaHeartbeat,
+  FaSyncAlt
 } from 'react-icons/fa'
 import {
   ResponsiveContainer,
@@ -49,6 +51,24 @@ import { listarPacientes } from '../../services/pacientesService'
 import { listarMedicos } from '../../services/medicosService'
 import { listarListaEspera } from '../../services/listaEsperaService'
 import { obterResumoDashboard } from '../../services/dashboardService'
+import './DashboardPage.css'
+
+function toLocalDateKey(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function parseLocalDate(value) {
+  if (!value) return null
+
+  const datePart = String(value).slice(0, 10)
+  const [year, month, day] = datePart.split('-').map(Number)
+
+  if (!year || !month || !day) return new Date(value)
+  return new Date(year, month - 1, day)
+}
 
 function DashboardPage() {
   const { user } = useAuth()
@@ -70,12 +90,28 @@ function DashboardPage() {
   const perfil = user?.perfil || 'SECRETARIO'
   const pacienteIdLogado = user?.paciente_id || null
   const medicoIdLogado = user?.medico_id || null
+  const nomeUsuario = user?.nome || 'Usuário'
+  const primeiroNome = nomeUsuario.trim().split(/\s+/)[0]
+  const perfilLabel = {
+    SECRETARIO: 'Secretário',
+    MEDICO: 'Médico',
+    PACIENTE: 'Paciente'
+  }[perfil]
+  const contextoLabel = {
+    SECRETARIO: 'Central operacional',
+    MEDICO: 'Painel clínico',
+    PACIENTE: 'Minha saúde'
+  }[perfil]
+  const [hoje] = useState(() => new Date())
+  const saudacao =
+    hoje.getHours() < 12 ? 'Bom dia' : hoje.getHours() < 18 ? 'Boa tarde' : 'Boa noite'
+  const dataHojeFormatada = new Intl.DateTimeFormat('pt-BR', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long'
+  }).format(hoje)
 
-  useEffect(() => {
-    carregarDashboard()
-  }, [])
-
-  const carregarDashboard = async () => {
+  const carregarDashboard = useCallback(async () => {
     try {
       setLoading(true)
       setErro('')
@@ -85,7 +121,6 @@ function DashboardPage() {
         const [
           dadosConsultas,
           dadosExames,
-          dadosProntuarios,
           dadosAgendas,
           dadosPacientes,
           dadosMedicos,
@@ -93,7 +128,6 @@ function DashboardPage() {
         ] = await Promise.all([
           listarConsultas(),
           listarExames(),
-          listarProntuarios(),
           listarAgendas(),
           listarPacientes(),
           listarMedicos(),
@@ -102,7 +136,7 @@ function DashboardPage() {
 
         setConsultas(Array.isArray(dadosConsultas) ? dadosConsultas : [])
         setExames(Array.isArray(dadosExames) ? dadosExames : [])
-        setProntuarios(Array.isArray(dadosProntuarios) ? dadosProntuarios : [])
+        setProntuarios([])
         setAgendas(Array.isArray(dadosAgendas) ? dadosAgendas : [])
         setPacientes(Array.isArray(dadosPacientes) ? dadosPacientes : [])
         setMedicos(Array.isArray(dadosMedicos) ? dadosMedicos : [])
@@ -153,10 +187,13 @@ function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [perfil])
 
-  const hoje = new Date()
-  const hojeStr = hoje.toISOString().split('T')[0]
+  useEffect(() => {
+    carregarDashboard()
+  }, [carregarDashboard])
+
+  const hojeStr = toLocalDateKey(hoje)
 
   const consultasVisiveis = useMemo(() => {
     if (perfil === 'SECRETARIO') return consultas
@@ -197,7 +234,7 @@ function DashboardPage() {
   }, [exames, perfil, medicoIdLogado, pacienteIdLogado])
 
   const prontuariosVisiveis = useMemo(() => {
-    if (perfil === 'SECRETARIO') return prontuarios
+    if (perfil === 'SECRETARIO') return []
 
     if (perfil === 'MEDICO') {
       return prontuarios.filter((prontuario) => {
@@ -292,7 +329,7 @@ function DashboardPage() {
       const data = new Date()
       data.setDate(hoje.getDate() - i)
 
-      const chave = data.toISOString().split('T')[0]
+      const chave = toLocalDateKey(data)
       const label = nomesDias[data.getDay()]
 
       const total = consultasVisiveis.filter((consulta) => {
@@ -310,7 +347,7 @@ function DashboardPage() {
     }
 
     return dias
-  }, [consultasVisiveis])
+  }, [consultasVisiveis, hoje])
 
   const proximaConsultaPaciente = useMemo(() => {
     if (perfil !== 'PACIENTE') return null
@@ -438,7 +475,7 @@ function DashboardPage() {
 
   const formatarData = (data) => {
     if (!data) return '-'
-    return new Date(data).toLocaleDateString('pt-BR')
+    return parseLocalDate(data).toLocaleDateString('pt-BR')
   }
 
   const formatarHora = (hora) => {
@@ -483,30 +520,37 @@ function DashboardPage() {
     descricao,
     variantClass,
     trendText,
-    trendPositive = true
+    trendPositive = true,
+    columnProps = { md: 6, lg: 3 }
   }) => (
-    <Col md={6} lg={3}>
-      <Card className={`stat-card dashboard-stat-card ${variantClass}`}>
+    <Col {...columnProps} className="dashboard-metric-column">
+      <Card className={`dashboard-metric-card ${variantClass}`}>
         <Card.Body>
-          <div className="d-flex justify-content-between align-items-start">
-            <div className="stat-icon">{icon}</div>
+          <div className="dashboard-metric-card__top">
+            <div className="dashboard-metric-card__icon">{icon}</div>
             {trendText && (
-              <small className={trendPositive ? 'text-success fw-semibold' : 'text-danger fw-semibold'}>
-                {trendPositive ? <FaArrowUp className="me-1" /> : <FaArrowDown className="me-1" />}
+              <small
+                className={`dashboard-metric-card__trend ${
+                  trendPositive ? 'is-positive' : 'is-negative'
+                }`}
+              >
+                {trendPositive ? <FaArrowUp /> : <FaArrowDown />}
                 {trendText}
               </small>
             )}
           </div>
-          <h6 className="mt-3">{titulo}</h6>
-          <h2 className="fw-bold">{valor}</h2>
-          <p className="text-muted mb-0">{descricao}</p>
+          <div className="dashboard-metric-card__content">
+            <span>{titulo}</span>
+            <strong>{valor}</strong>
+            <p>{descricao}</p>
+          </div>
         </Card.Body>
       </Card>
     </Col>
   )
 
   const renderCardsSecretario = () => (
-    <Row className="g-4">
+    <Row className="dashboard-metrics g-3">
       {renderMetricCard({
         icon: <FaUserInjured />,
         titulo: 'Pacientes',
@@ -546,7 +590,7 @@ function DashboardPage() {
   )
 
   const renderCardsMedico = () => (
-    <Row className="g-4">
+    <Row className="dashboard-metrics g-3">
       {renderMetricCard({
         icon: <FaCalendarCheck />,
         titulo: 'Consultas',
@@ -583,45 +627,34 @@ function DashboardPage() {
   )
 
   const renderCardsPaciente = () => (
-    <Row className="g-4">
-      <Col md={6} lg={4}>
-        <Card className="stat-card dashboard-stat-card stat-green">
-          <Card.Body>
-            <div className="stat-icon">
-              <FaCalendarCheck />
-            </div>
-            <h6 className="mt-3">Consultas</h6>
-            <h2 className="fw-bold">{consultasVisiveis.length}</h2>
-            <p className="text-muted mb-0">Minhas consultas</p>
-          </Card.Body>
-        </Card>
-      </Col>
-
-      <Col md={6} lg={4}>
-        <Card className="stat-card dashboard-stat-card stat-yellow">
-          <Card.Body>
-            <div className="stat-icon">
-              <FaFlask />
-            </div>
-            <h6 className="mt-3">Exames</h6>
-            <h2 className="fw-bold">{examesVisiveis.length}</h2>
-            <p className="text-muted mb-0">Meus exames</p>
-          </Card.Body>
-        </Card>
-      </Col>
-
-      <Col md={6} lg={4}>
-        <Card className="stat-card dashboard-stat-card stat-blue">
-          <Card.Body>
-            <div className="stat-icon">
-              <FaNotesMedical />
-            </div>
-            <h6 className="mt-3">Prontuários</h6>
-            <h2 className="fw-bold">{prontuariosVisiveis.length}</h2>
-            <p className="text-muted mb-0">Meu histórico clínico</p>
-          </Card.Body>
-        </Card>
-      </Col>
+    <Row className="dashboard-metrics g-3">
+      {renderMetricCard({
+        icon: <FaCalendarCheck />,
+        titulo: 'Consultas',
+        valor: consultasVisiveis.length,
+        descricao: 'Minhas consultas',
+        variantClass: 'stat-green',
+        trendText: 'Acompanhamento',
+        columnProps: { md: 6, lg: 4 }
+      })}
+      {renderMetricCard({
+        icon: <FaFlask />,
+        titulo: 'Exames',
+        valor: examesVisiveis.length,
+        descricao: 'Meus exames',
+        variantClass: 'stat-yellow',
+        trendText: 'Resultados',
+        columnProps: { md: 6, lg: 4 }
+      })}
+      {renderMetricCard({
+        icon: <FaNotesMedical />,
+        titulo: 'Prontuários',
+        valor: prontuariosVisiveis.length,
+        descricao: 'Meu histórico clínico',
+        variantClass: 'stat-blue',
+        trendText: 'Histórico',
+        columnProps: { md: 6, lg: 4 }
+      })}
     </Row>
   )
 
@@ -631,7 +664,7 @@ function DashboardPage() {
     }
 
     return (
-      <Alert variant="success" className="border-0 shadow-sm rounded-4 p-4 mb-4">
+      <Alert variant="success" className="dashboard-waiting-alert">
         <div className="d-flex align-items-start gap-3">
           <div className="fs-3">
             <FaCheckCircle />
@@ -685,8 +718,13 @@ function DashboardPage() {
   }
 
   const renderLista = (titulo, itens, tipo) => (
-    <Card className="content-card p-4 h-100 border-0 shadow-sm rounded-4">
-      <h4 className="fw-bold mb-3">{titulo}</h4>
+    <Card className="content-card dashboard-list-card h-100">
+      <div className="dashboard-panel-heading">
+        <div>
+          <span className="dashboard-panel-eyebrow">Atualizações recentes</span>
+          <h4>{titulo}</h4>
+        </div>
+      </div>
 
       {itens.length === 0 ? (
         <p className="text-muted mb-0">Nenhum registro encontrado.</p>
@@ -739,17 +777,30 @@ function DashboardPage() {
   )
 
   const renderGraficoConsultas = () => (
-    <Card className="content-card p-4 h-100 border-0 shadow-sm rounded-4">
-      <h4 className="fw-bold mb-3">Consultas nos últimos 7 dias</h4>
-      <div style={{ width: '100%', height: 300 }}>
+    <Card className="content-card dashboard-chart-card h-100">
+      <div className="dashboard-panel-heading">
+        <div>
+          <span className="dashboard-panel-eyebrow">Movimentação semanal</span>
+          <h4>Consultas nos últimos 7 dias</h4>
+        </div>
+        <span className="dashboard-panel-icon">
+          <FaCalendarCheck />
+        </span>
+      </div>
+      <div className="dashboard-chart-area">
         <ResponsiveContainer>
           <BarChart data={consultasUltimos7Dias}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="dia" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Bar dataKey="consultas" name="Consultas" radius={[8, 8, 0, 0]} />
+            <CartesianGrid stroke="#edf0f5" strokeDasharray="4 4" vertical={false} />
+            <XAxis dataKey="dia" axisLine={false} tickLine={false} />
+            <YAxis axisLine={false} tickLine={false} allowDecimals={false} />
+            <Tooltip cursor={{ fill: '#f5f8ff' }} />
+            <Bar
+              dataKey="consultas"
+              name="Consultas"
+              fill="#2563eb"
+              radius={[9, 9, 3, 3]}
+              maxBarSize={42}
+            />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -757,9 +808,17 @@ function DashboardPage() {
   )
 
   const renderGraficoExames = () => (
-    <Card className="content-card p-4 h-100 border-0 shadow-sm rounded-4">
-      <h4 className="fw-bold mb-3">Exames por status</h4>
-      <div style={{ width: '100%', height: 300 }}>
+    <Card className="content-card dashboard-chart-card h-100">
+      <div className="dashboard-panel-heading">
+        <div>
+          <span className="dashboard-panel-eyebrow">Distribuição</span>
+          <h4>Exames por status</h4>
+        </div>
+        <span className="dashboard-panel-icon dashboard-panel-icon--violet">
+          <FaFlask />
+        </span>
+      </div>
+      <div className="dashboard-chart-area dashboard-chart-area--pie">
         <ResponsiveContainer>
           <PieChart>
             <Pie
@@ -783,10 +842,15 @@ function DashboardPage() {
   )
 
   const renderNotificacoes = () => (
-    <Card className="content-card p-4 h-100 border-0 shadow-sm rounded-4">
-      <div className="d-flex align-items-center justify-content-between mb-3">
-        <h4 className="fw-bold mb-0">Notificações</h4>
-        <FaBell className="text-warning" />
+    <Card className="content-card dashboard-notifications-card h-100">
+      <div className="dashboard-panel-heading">
+        <div>
+          <span className="dashboard-panel-eyebrow">Central de avisos</span>
+          <h4>Notificações</h4>
+        </div>
+        <span className="dashboard-panel-icon dashboard-panel-icon--amber">
+          <FaBell />
+        </span>
       </div>
 
       {notificacoes.length === 0 ? (
@@ -796,8 +860,7 @@ function DashboardPage() {
           {notificacoes.map((item, index) => (
             <div
               key={index}
-              className="d-flex align-items-start gap-3 p-3 rounded-4"
-              style={{ background: '#f8f9fa' }}
+              className={`dashboard-notification dashboard-notification--${item.tipo}`}
             >
               <div className="mt-1">
                 {item.tipo === 'success' && <FaCheckCircle className="text-success" />}
@@ -816,8 +879,16 @@ function DashboardPage() {
   )
 
   const renderIndicadores = () => (
-    <Card className="content-card p-4 border-0 shadow-sm rounded-4">
-      <h4 className="fw-bold mb-4">Indicadores rápidos</h4>
+    <Card className="content-card dashboard-progress-card h-100">
+      <div className="dashboard-panel-heading">
+        <div>
+          <span className="dashboard-panel-eyebrow">Desempenho</span>
+          <h4>Indicadores rápidos</h4>
+        </div>
+        <span className="dashboard-panel-icon dashboard-panel-icon--green">
+          <FaHeartbeat />
+        </span>
+      </div>
 
       <div className="mb-4">
         <div className="d-flex justify-content-between mb-2">
@@ -878,18 +949,19 @@ function DashboardPage() {
   }
 
   const renderCardProximaConsultaPaciente = () => (
-    <Card className="content-card p-4 border-0 shadow-sm rounded-4 h-100">
-      <div className="d-flex justify-content-between align-items-start mb-3">
+    <Card className="content-card dashboard-next-appointment h-100">
+      <div className="dashboard-panel-heading">
         <div>
-          <h4 className="fw-bold mb-1">Próxima consulta</h4>
-          <p className="text-muted mb-0">
+          <span className="dashboard-panel-eyebrow">Seu próximo compromisso</span>
+          <h4>Próxima consulta</h4>
+          <p>
             Veja os detalhes do seu próximo atendimento.
           </p>
         </div>
 
-        <div className="stat-icon">
+        <span className="dashboard-panel-icon dashboard-panel-icon--green">
           <FaCalendarCheck />
-        </div>
+        </span>
       </div>
 
       {!proximaConsultaPaciente ? (
@@ -946,8 +1018,13 @@ function DashboardPage() {
   )
 
   const renderAcoesRapidasPaciente = () => (
-    <Card className="content-card p-4 border-0 shadow-sm rounded-4 h-100">
-      <h4 className="fw-bold mb-3">Ações rápidas</h4>
+    <Card className="content-card dashboard-quick-actions h-100">
+      <div className="dashboard-panel-heading">
+        <div>
+          <span className="dashboard-panel-eyebrow">Atalhos</span>
+          <h4>Ações rápidas</h4>
+        </div>
+      </div>
 
       <div className="d-grid gap-3">
         <Button variant="outline-primary" onClick={() => redirecionarPara('/consultas')}>
@@ -971,30 +1048,83 @@ function DashboardPage() {
 
   return (
     <MainLayout>
-      <div className="dashboard-header mb-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
-        <div>
-          <h1 className="page-title">Dashboard</h1>
-          <p className="page-subtitle mb-0">
-            Bem-vindo de volta, {user?.nome || 'Gabriel'}.
-          </p>
-        </div>
+      <div className="clinical-dashboard">
+        <section className="dashboard-hero">
+          <div className="dashboard-hero__content">
+            <span className="dashboard-hero__eyebrow">
+              <FaHeartbeat />
+              {contextoLabel}
+            </span>
+            <h1>
+              {saudacao}, <span>{primeiroNome}</span>
+            </h1>
+            <p>
+              {perfil === 'SECRETARIO' &&
+                'Acompanhe a operação da clínica e mantenha a rotina organizada.'}
+              {perfil === 'MEDICO' &&
+                'Veja seus atendimentos, exames e registros clínicos em um só lugar.'}
+              {perfil === 'PACIENTE' &&
+                'Acompanhe seus cuidados, próximos atendimentos e resultados.'}
+            </p>
+          </div>
 
-        <div className="d-flex align-items-center gap-2">
-          <Badge bg="primary" className="px-3 py-2 rounded-pill">
-            {perfil}
-          </Badge>
-        </div>
-      </div>
+          <div className="dashboard-hero__meta">
+            <span className="dashboard-hero__chip">
+              <FaCalendarCheck />
+              <span className="text-capitalize">{dataHojeFormatada}</span>
+            </span>
+            <span className="dashboard-hero__chip dashboard-hero__chip--role">
+              {perfil === 'PACIENTE' && <FaUserInjured />}
+              {perfil === 'MEDICO' && <FaUserMd />}
+              {perfil === 'SECRETARIO' && <FaCalendarCheck />}
+              {perfilLabel}
+            </span>
+            <button
+              type="button"
+              className="dashboard-refresh-button"
+              onClick={carregarDashboard}
+              disabled={loading}
+              title="Atualizar dashboard"
+              aria-label="Atualizar dashboard"
+            >
+              <FaSyncAlt className={loading ? 'is-spinning' : ''} />
+            </button>
+          </div>
 
-      {erro && <Alert variant="danger">{erro}</Alert>}
-      {sucesso && <Alert variant="success">{sucesso}</Alert>}
+          <FaHeartbeat className="dashboard-hero__decoration" aria-hidden="true" />
+        </section>
 
-      {loading ? (
-        <div className="d-flex justify-content-center py-5">
-          <Spinner animation="border" />
-        </div>
-      ) : (
-        <>
+        {erro && (
+          <Alert
+            variant="danger"
+            dismissible
+            onClose={() => setErro('')}
+            className="dashboard-feedback"
+          >
+            {erro}
+          </Alert>
+        )}
+        {sucesso && (
+          <Alert
+            variant="success"
+            dismissible
+            onClose={() => setSucesso('')}
+            className="dashboard-feedback"
+          >
+            {sucesso}
+          </Alert>
+        )}
+
+        {loading ? (
+          <div className="dashboard-loading">
+            <span className="dashboard-loading__icon">
+              <Spinner animation="border" />
+            </span>
+            <strong>Preparando sua visão geral</strong>
+            <p>Organizando os dados mais recentes da clínica...</p>
+          </div>
+        ) : (
+          <div className="dashboard-content">
           {renderAvisoListaEsperaPaciente()}
 
           {perfil === 'SECRETARIO' && renderCardsSecretario()}
@@ -1002,18 +1132,18 @@ function DashboardPage() {
           {perfil === 'PACIENTE' && renderCardsPaciente()}
 
           {perfil === 'PACIENTE' && (
-            <Row className="g-4 mt-2">
+            <Row className="g-3 dashboard-section-row">
               <Col lg={7}>{renderCardProximaConsultaPaciente()}</Col>
               <Col lg={5}>{renderAcoesRapidasPaciente()}</Col>
             </Row>
           )}
 
-          <Row className="g-4 mt-2">
+          <Row className="g-3 dashboard-section-row">
             <Col lg={8}>{renderGraficoConsultas()}</Col>
             <Col lg={4}>{renderNotificacoes()}</Col>
           </Row>
 
-          <Row className="g-4 mt-2">
+          <Row className="g-3 dashboard-section-row">
             <Col lg={7}>
               {perfil === 'SECRETARIO' &&
                 renderLista('Últimas consultas', ultimasConsultas, 'consulta')}
@@ -1026,31 +1156,49 @@ function DashboardPage() {
             <Col lg={5}>{renderGraficoExames()}</Col>
           </Row>
 
-          <Row className="g-4 mt-2">
+          <Row className="g-3 dashboard-section-row">
             <Col lg={6}>{renderIndicadores()}</Col>
 
             <Col lg={6}>
-              <Card className="content-card p-4 h-100 border-0 shadow-sm rounded-4">
-                <h4 className="fw-bold mb-3">
-                  {perfil === 'PACIENTE' ? 'Meu Perfil' : 'Perfil do Usuário'}
-                </h4>
-                <p className="mb-2">
-                  <strong>Nome:</strong> {user?.nome || 'Gabriel'}
-                </p>
-                <p className="mb-2">
-                  <strong>E-mail:</strong> {user?.email || 'gabriel@email.com'}
-                </p>
-                <p className="mb-2">
-                  <strong>Perfil:</strong> {perfil}
-                </p>
+              <Card className="content-card dashboard-profile-card h-100">
+                <div className="dashboard-panel-heading">
+                  <div>
+                    <span className="dashboard-panel-eyebrow">Conta conectada</span>
+                    <h4>
+                      {perfil === 'PACIENTE' ? 'Meu perfil' : 'Perfil do usuário'}
+                    </h4>
+                  </div>
+                  <span className="dashboard-profile-avatar">
+                    {nomeUsuario
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map((part) => part[0])
+                      .join('')
+                      .toUpperCase()}
+                  </span>
+                </div>
+                <div className="dashboard-profile-details">
+                  <div>
+                    <span>Nome</span>
+                    <strong>{nomeUsuario}</strong>
+                  </div>
+                  <div>
+                    <span>E-mail</span>
+                    <strong>{user?.email || 'E-mail não informado'}</strong>
+                  </div>
+                  <div>
+                    <span>Perfil de acesso</span>
+                    <strong>{perfilLabel}</strong>
+                  </div>
+                </div>
                 {perfil === 'PACIENTE' && (
-                  <p className="mb-0 text-muted">
+                  <p className="dashboard-profile-note">
                     Área personalizada com acesso rápido às suas consultas, exames,
                     prescrições e acompanhamento do check-in online.
                   </p>
                 )}
                 {perfil === 'MEDICO' && (
-                  <p className="mb-0 text-muted">
+                  <p className="dashboard-profile-note">
                     Área personalizada com informações relevantes para seu acompanhamento diário.
                   </p>
                 )}
@@ -1058,39 +1206,46 @@ function DashboardPage() {
             </Col>
           </Row>
 
-          <Row className="g-4 mt-2">
+          <Row className="g-3 dashboard-section-row">
             <Col md={12}>
-              <Card className="content-card p-4 border-0 shadow-sm rounded-4">
-                <h4 className="fw-bold mb-3">
-                  {perfil === 'PACIENTE' ? 'Resumo da Minha Área' : 'Visão Geral'}
-                </h4>
+              <Card className="content-card dashboard-summary-card">
+                <span className="dashboard-summary-card__icon">
+                  <FaHeartbeat />
+                </span>
+                <div>
+                  <span className="dashboard-panel-eyebrow">Health Horizon</span>
+                  <h4>
+                    {perfil === 'PACIENTE' ? 'Resumo da minha área' : 'Visão geral'}
+                  </h4>
 
-                {perfil === 'SECRETARIO' && (
-                  <p className="mb-0 text-muted">
-                    Você possui uma visão ampla da clínica, com acompanhamento de pacientes,
-                    médicos, consultas, exames, agenda, lista de espera e indicadores operacionais.
-                  </p>
-                )}
+                  {perfil === 'SECRETARIO' && (
+                    <p>
+                      Você possui uma visão ampla da clínica, com acompanhamento de pacientes,
+                      médicos, consultas, exames, agenda, lista de espera e indicadores operacionais.
+                    </p>
+                  )}
 
-                {perfil === 'MEDICO' && (
-                  <p className="mb-0 text-muted">
-                    Aqui você acompanha seus atendimentos, prontuários, exames e disponibilidade
-                    de agenda de forma rápida e organizada.
-                  </p>
-                )}
+                  {perfil === 'MEDICO' && (
+                    <p>
+                      Aqui você acompanha seus atendimentos, prontuários, exames e disponibilidade
+                      de agenda de forma rápida e organizada.
+                    </p>
+                  )}
 
-                {perfil === 'PACIENTE' && (
-                  <p className="mb-0 text-muted">
-                    Aqui você acompanha sua próxima consulta, verifica o status do check-in,
-                    acessa rapidamente exames, prescrições, histórico clínico e avisos da lista
-                    de espera em um ambiente mais simples, moderno e organizado.
-                  </p>
-                )}
+                  {perfil === 'PACIENTE' && (
+                    <p>
+                      Aqui você acompanha sua próxima consulta, verifica o status do check-in,
+                      acessa rapidamente exames, prescrições, histórico clínico e avisos da lista
+                      de espera em um ambiente mais simples, moderno e organizado.
+                    </p>
+                  )}
+                </div>
               </Card>
             </Col>
           </Row>
-        </>
-      )}
+          </div>
+        )}
+      </div>
     </MainLayout>
   )
 }

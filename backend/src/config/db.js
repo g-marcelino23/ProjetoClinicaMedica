@@ -1,16 +1,29 @@
-const pg = require('pg');
-require('dotenv').config();
-
-console.log('Módulo pg carregado:', Object.keys(pg));
+const pg = require('pg')
+require('dotenv').config()
+const config = require('./env')
 
 const pool = new pg.Pool({
-  host: process.env.DB_HOST,
-  port: Number(process.env.DB_PORT),
-  database: process.env.DB_NAME,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-});
+  ...config.db,
+  max: 10,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 5_000,
+  statement_timeout: 10_000,
+  query_timeout: 12_000,
+  application_name: 'clinicalmed-api',
+})
 
-console.log('Pool criado:', typeof pool, 'connect:', typeof pool.connect);
+pool.on('error', (error) => {
+  console.error(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      schemaVersion: 1,
+      service: 'clinicalmed-api',
+      level: 'error',
+      event: 'unexpected_database_pool_error',
+      errorName: error.name,
+      errorCode: error.code || 'unknown',
+    })
+  )
+})
 
-module.exports = pool;
+module.exports = pool

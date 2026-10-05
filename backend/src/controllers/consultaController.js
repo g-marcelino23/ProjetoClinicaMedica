@@ -1,284 +1,323 @@
 const pool = require('../config/db')
+const {
+  rollbackTransaction,
+} = require('../services/transactionService')
+const {
+  CHECKIN_EARLY_MINUTES,
+  CHECKIN_LATE_MINUTES,
+  canTransitionConsultation,
+} = require('../domain/workflowPolicy')
 
-const criarConsulta = async (req, res) => {
+const getConsultationSelect = (user) => `
+  SELECT
+    c.id,
+    c.paciente_id,
+    up.nome AS paciente_nome,
+    c.medico_id,
+    um.nome AS medico_nome,
+    c.agenda_id,
+    c.data_consulta,
+    c.hora_consulta,
+    c.hora_fim,
+    c.status,
+    c.checkin_realizado,
+    c.data_checkin,
+    c.created_at,
+    c.updated_at
+    ${
+      user.perfil === 'SECRETARIO'
+        ? ''
+        : ', c.motivo, c.observacoes'
+    }
+  FROM consultas c
+  JOIN pacientes p ON p.id = c.paciente_id
+  JOIN usuarios up ON up.id = p.usuario_id
+  JOIN medicos m ON m.id = c.medico_id
+  JOIN usuarios um ON um.id = m.usuario_id
+`
+
+const getAccessScope = (user, parameterIndex = 1) => {
+  if (user.perfil === 'SECRETARIO') {
+    return { clause: '', params: [] }
+  }
+
+  if (user.perfil === 'PACIENTE' && user.paciente_id) {
+    return {
+      clause: ` AND c.paciente_id = $${parameterIndex}`,
+      params: [user.paciente_id],
+    }
+  }
+
+  if (user.perfil === 'MEDICO' && user.medico_id) {
+    return {
+      clause: ` AND c.medico_id = $${parameterIndex}`,
+      params: [user.medico_id],
+    }
+  }
+
+  return { clause: ' AND false', params: [] }
+}
+
+const criarConsulta = async (req, res, next) => {
   const client = await pool.connect()
 
   try {
     await client.query('BEGIN')
 
-    const {
-      paciente_id,
-      agenda_id,
-      motivo,
-      observacoes
-    } = req.body
+    const pacienteId =
+      req.usuario.perfil === 'PACIENTE'
+        ? req.usuario.paciente_id
+        : req.body.paciente_id
 
-    if (!paciente_id || !agenda_id) {
+    if (!pacienteId) {
       await client.query('ROLLBACK')
-      return res.status(400).json({
-        erro: 'paciente_id e agenda_id são obrigatórios'
-      })
+      return res.status(400).json({ erro: 'Paciente não informado ou não vinculado' })
     }
 
-    const pacienteExiste = await client.query(
-      'SELECT * FROM pacientes WHERE id = $1',
-      [paciente_id]
+    const patientResult = await client.query(
+      'SELECT id FROM pacientes WHERE id = $1',
+      [pacienteId]
     )
 
-    if (pacienteExiste.rows.length === 0) {
+    if (patientResult.rows.length === 0) {
       await client.query('ROLLBACK')
       return res.status(404).json({ erro: 'Paciente não encontrado' })
     }
 
-    const agendaExiste = await client.query(
-      'SELECT * FROM agendas_medicas WHERE id = $1',
-      [agenda_id]
+    const agendaResult = await client.query(
+      `SELECT
+         id,
+         medico_id,
+         data_agenda,
+         hora_inicio,
+         hora_fim,
+         disponivel,
+         (data_agenda + hora_inicio) > LOCALTIMESTAMP AS horario_futuro
+       FROM agendas_medicas
+       WHERE id = $1
+       FOR UPDATE`,
+      [req.body.agenda_id]
     )
 
-    if (agendaExiste.rows.length === 0) {
+    if (agendaResult.rows.length === 0) {
       await client.query('ROLLBACK')
       return res.status(404).json({ erro: 'Agenda não encontrada' })
     }
 
-    const agenda = agendaExiste.rows[0]
+    const agenda = agendaResult.rows[0]
 
     if (!agenda.disponivel) {
       await client.query('ROLLBACK')
-      return res.status(400).json({
-        erro: 'Essa agenda não está disponível'
-      })
+      return res.status(409).json({ erro: 'Horário indisponível' })
+    }
+
+    if (!agenda.horario_futuro) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({ erro: 'Não é permitido agendar no passado' })
     }
 
     const result = await client.query(
-      `INSERT INTO consultas
-      (
-        paciente_id,
-        medico_id,
-        agenda_id,
-        data_consulta,
-        hora_consulta,
-        motivo,
-        status,
-        observacoes,
-        checkin_realizado,
-        data_checkin
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, 'AGENDADA', $7, false, null)
-      RETURNING *`,
+      `INSERT INTO consultas (
+         paciente_id, medico_id, agenda_id, data_consulta, hora_consulta, hora_fim,
+         motivo, status, observacoes, checkin_realizado, data_checkin
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, 'AGENDADA', $8, false, null)
+       RETURNING *`,
       [
-        paciente_id,
+        pacienteId,
         agenda.medico_id,
-        agenda_id,
+        agenda.id,
         agenda.data_agenda,
         agenda.hora_inicio,
-        motivo || null,
-        observacoes || null
+        agenda.hora_fim,
+        req.body.motivo || null,
+        req.body.observacoes || null,
       ]
     )
 
     await client.query(
       'UPDATE agendas_medicas SET disponivel = false WHERE id = $1',
-      [agenda_id]
+      [agenda.id]
     )
 
     await client.query('COMMIT')
-
     return res.status(201).json({
       mensagem: 'Consulta agendada com sucesso',
-      consulta: result.rows[0]
+      consulta: result.rows[0],
     })
   } catch (error) {
-    await client.query('ROLLBACK')
-    return res.status(500).json({ erro: error.message })
+    const transactionError = await rollbackTransaction(client, error)
+    if (transactionError !== error) return next(transactionError)
+
+    if (error.code === '23P01') {
+      return res.status(409).json({
+        erro: 'O paciente já possui consulta em horário sobreposto',
+      })
+    }
+
+    if (error.code === '23505') {
+      return res.status(409).json({ erro: 'Horário indisponível' })
+    }
+
+    next(error)
   } finally {
     client.release()
   }
 }
 
-const listarConsultas = async (req, res) => {
+const listarConsultas = async (req, res, next) => {
   try {
-    const result = await pool.query(`
-      SELECT
-        c.id,
-        c.paciente_id,
-        up.nome AS paciente_nome,
-        c.medico_id,
-        um.nome AS medico_nome,
-        c.agenda_id,
-        c.data_consulta,
-        c.hora_consulta,
-        c.motivo,
-        c.status,
-        c.observacoes,
-        c.checkin_realizado,
-        c.data_checkin,
-        c.created_at,
-        c.updated_at
-      FROM consultas c
-      JOIN pacientes p ON p.id = c.paciente_id
-      JOIN usuarios up ON up.id = p.usuario_id
-      JOIN medicos m ON m.id = c.medico_id
-      JOIN usuarios um ON um.id = m.usuario_id
-      ORDER BY c.data_consulta, c.hora_consulta
-    `)
-
-    return res.json(result.rows)
+    const scope = getAccessScope(req.usuario)
+    const result = await pool.query(
+      `${getConsultationSelect(req.usuario)}
+       WHERE true ${scope.clause}
+       ORDER BY c.data_consulta, c.hora_consulta`,
+      scope.params
+    )
+    res.json(result.rows)
   } catch (error) {
-    return res.status(500).json({ erro: error.message })
+    next(error)
   }
 }
 
-const buscarConsultaPorId = async (req, res) => {
+const buscarConsultaPorId = async (req, res, next) => {
   try {
-    const { id } = req.params
-
+    const scope = getAccessScope(req.usuario, 2)
     const result = await pool.query(
-      `
-      SELECT
-        c.id,
-        c.paciente_id,
-        up.nome AS paciente_nome,
-        c.medico_id,
-        um.nome AS medico_nome,
-        c.agenda_id,
-        c.data_consulta,
-        c.hora_consulta,
-        c.motivo,
-        c.status,
-        c.observacoes,
-        c.checkin_realizado,
-        c.data_checkin,
-        c.created_at,
-        c.updated_at
-      FROM consultas c
-      JOIN pacientes p ON p.id = c.paciente_id
-      JOIN usuarios up ON up.id = p.usuario_id
-      JOIN medicos m ON m.id = c.medico_id
-      JOIN usuarios um ON um.id = m.usuario_id
-      WHERE c.id = $1
-      `,
-      [id]
+      `${getConsultationSelect(req.usuario)}
+       WHERE c.id = $1 ${scope.clause}`,
+      [req.params.id, ...scope.params]
     )
 
     if (result.rows.length === 0) {
       return res.status(404).json({ erro: 'Consulta não encontrada' })
     }
 
-    return res.json(result.rows[0])
+    res.json(result.rows[0])
   } catch (error) {
-    return res.status(500).json({ erro: error.message })
+    next(error)
   }
 }
 
-const realizarCheckIn = async (req, res) => {
+const realizarCheckIn = async (req, res, next) => {
   const client = await pool.connect()
 
   try {
     await client.query('BEGIN')
-
-    const { id } = req.params
-    const usuarioLogadoId = req.usuario.id
-    const perfilLogado = req.usuario.perfil
-
-    if (perfilLogado !== 'PACIENTE') {
-      await client.query('ROLLBACK')
-      return res.status(403).json({
-        erro: 'Apenas pacientes podem realizar check-in online'
-      })
-    }
-
-    const consultaResult = await client.query(
-      `
-      SELECT
-        c.*,
-        p.usuario_id
-      FROM consultas c
-      JOIN pacientes p ON p.id = c.paciente_id
-      WHERE c.id = $1
-      `,
-      [id]
+    const result = await client.query(
+      `SELECT
+         c.*,
+         LOCALTIMESTAMP BETWEEN
+           (c.data_consulta + c.hora_consulta - ($3 * INTERVAL '1 minute'))
+           AND
+           (c.data_consulta + c.hora_consulta + ($4 * INTERVAL '1 minute'))
+           AS dentro_janela_checkin
+       FROM consultas c
+       WHERE c.id = $1 AND c.paciente_id = $2
+       FOR UPDATE`,
+      [
+        req.params.id,
+        req.usuario.paciente_id,
+        CHECKIN_EARLY_MINUTES,
+        CHECKIN_LATE_MINUTES,
+      ]
     )
 
-    if (consultaResult.rows.length === 0) {
+    if (result.rows.length === 0) {
       await client.query('ROLLBACK')
       return res.status(404).json({ erro: 'Consulta não encontrada' })
     }
 
-    const consulta = consultaResult.rows[0]
-
-    if (consulta.usuario_id !== usuarioLogadoId) {
-      await client.query('ROLLBACK')
-      return res.status(403).json({
-        erro: 'Você não tem permissão para realizar check-in nesta consulta'
-      })
-    }
+    const consulta = result.rows[0]
 
     if (consulta.checkin_realizado) {
       await client.query('ROLLBACK')
-      return res.status(400).json({
-        erro: 'Check-in já realizado para esta consulta'
-      })
+      return res.status(409).json({ erro: 'Check-in já realizado' })
     }
 
-    if (
-      consulta.status === 'CANCELADA' ||
-      consulta.status === 'REALIZADA' ||
-      consulta.status === 'FALTOU'
-    ) {
+    if (!['AGENDADA', 'CONFIRMADA'].includes(consulta.status)) {
       await client.query('ROLLBACK')
-      return res.status(400).json({
-        erro: 'Não é possível realizar check-in nesta consulta'
+      return res.status(409).json({ erro: 'Consulta indisponível para check-in' })
+    }
+
+    if (!consulta.dentro_janela_checkin) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        erro: `Check-in permitido somente entre ${CHECKIN_EARLY_MINUTES} minutos antes e ${CHECKIN_LATE_MINUTES} minutos após o horário`,
       })
     }
 
-    const result = await client.query(
-      `
-      UPDATE consultas
-      SET
-        checkin_realizado = true,
-        data_checkin = CURRENT_TIMESTAMP,
-        status = 'CONFIRMADA',
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      RETURNING *
-      `,
-      [id]
+    const update = await client.query(
+      `UPDATE consultas
+       SET checkin_realizado = true,
+           data_checkin = CURRENT_TIMESTAMP,
+           status = 'CONFIRMADA',
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1
+       RETURNING *`,
+      [consulta.id]
     )
 
     await client.query('COMMIT')
-
-    return res.json({
+    res.json({
       mensagem: 'Check-in realizado com sucesso',
-      consulta: result.rows[0]
+      consulta: update.rows[0],
     })
   } catch (error) {
-    await client.query('ROLLBACK')
-    return res.status(500).json({ erro: error.message })
+    next(await rollbackTransaction(client, error))
   } finally {
     client.release()
   }
 }
 
-const atualizarStatusConsulta = async (req, res) => {
+const atualizarStatusConsulta = async (req, res, next) => {
   const client = await pool.connect()
 
   try {
     await client.query('BEGIN')
-
-    const { id } = req.params
-    const { status, observacoes } = req.body
-
-    const consultaExiste = await client.query(
-      'SELECT * FROM consultas WHERE id = $1',
-      [id]
+    const scope = getAccessScope(req.usuario, 2)
+    const currentResult = await client.query(
+      `SELECT
+         c.*,
+         (c.data_consulta + c.hora_consulta) <= LOCALTIMESTAMP
+           AS horario_iniciado,
+         (c.data_consulta + c.hora_fim) <= LOCALTIMESTAMP
+           AS horario_encerrado
+       FROM consultas c
+       WHERE c.id = $1 ${scope.clause}
+       FOR UPDATE`,
+      [req.params.id, ...scope.params]
     )
 
-    if (consultaExiste.rows.length === 0) {
+    if (currentResult.rows.length === 0) {
       await client.query('ROLLBACK')
       return res.status(404).json({ erro: 'Consulta não encontrada' })
     }
 
-    const consulta = consultaExiste.rows[0]
+    const current = currentResult.rows[0]
+
+    if (!canTransitionConsultation(
+      req.usuario.perfil,
+      current.status,
+      req.body.status
+    )) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({ erro: 'Transição de status não permitida' })
+    }
+
+    if (req.body.status === 'REALIZADA' && !current.horario_iniciado) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        erro: 'A consulta não pode ser concluída antes do horário agendado',
+      })
+    }
+
+    if (req.body.status === 'FALTOU' && !current.horario_encerrado) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        erro: 'A falta só pode ser registrada após o fim do horário',
+      })
+    }
 
     const result = await client.query(
       `UPDATE consultas
@@ -287,84 +326,95 @@ const atualizarStatusConsulta = async (req, res) => {
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $3
        RETURNING *`,
-      [status, observacoes, id]
+      [
+        req.body.status,
+        req.usuario.perfil === 'MEDICO'
+          ? req.body.observacoes ?? current.observacoes
+          : current.observacoes,
+        current.id,
+      ]
     )
 
-    if (consulta.agenda_id) {
-      if (status === 'CANCELADA' || status === 'FALTOU') {
-        await client.query(
-          'UPDATE agendas_medicas SET disponivel = true WHERE id = $1',
-          [consulta.agenda_id]
-        )
-      }
-
-      if (status === 'AGENDADA' || status === 'CONFIRMADA') {
-        await client.query(
-          'UPDATE agendas_medicas SET disponivel = false WHERE id = $1',
-          [consulta.agenda_id]
-        )
-      }
+    if (current.agenda_id && req.body.status === 'CANCELADA') {
+      await client.query(
+        `UPDATE agendas_medicas
+         SET disponivel = true
+         WHERE id = $1
+           AND (data_agenda + hora_inicio) > LOCALTIMESTAMP`,
+        [current.agenda_id]
+      )
     }
 
     await client.query('COMMIT')
-
-    return res.json({
+    res.json({
       mensagem: 'Consulta atualizada com sucesso',
-      consulta: result.rows[0]
+      consulta: result.rows[0],
     })
   } catch (error) {
-    await client.query('ROLLBACK')
-    return res.status(500).json({ erro: error.message })
+    next(await rollbackTransaction(client, error))
   } finally {
     client.release()
   }
 }
 
-const deletarConsulta = async (req, res) => {
+const deletarConsulta = async (req, res, next) => {
   const client = await pool.connect()
 
   try {
     await client.query('BEGIN')
-
-    const { id } = req.params
-
-    const consultaExiste = await client.query(
-      'SELECT * FROM consultas WHERE id = $1',
-      [id]
+    const result = await client.query(
+      `SELECT id, agenda_id, status
+       FROM consultas
+       WHERE id = $1
+       FOR UPDATE`,
+      [req.params.id]
     )
 
-    if (consultaExiste.rows.length === 0) {
+    if (result.rows.length === 0) {
       await client.query('ROLLBACK')
       return res.status(404).json({ erro: 'Consulta não encontrada' })
     }
 
-    const consulta = consultaExiste.rows[0]
+    const consultation = result.rows[0]
 
-    await client.query('DELETE FROM consultas WHERE id = $1', [id])
+    if (!['AGENDADA', 'CONFIRMADA'].includes(consultation.status)) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        erro: 'Somente consultas ativas podem ser canceladas',
+      })
+    }
 
-    if (consulta.agenda_id) {
+    await client.query(
+      `UPDATE consultas
+       SET status = 'CANCELADA', updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [consultation.id]
+    )
+
+    if (consultation.agenda_id) {
       await client.query(
-        'UPDATE agendas_medicas SET disponivel = true WHERE id = $1',
-        [consulta.agenda_id]
+        `UPDATE agendas_medicas
+         SET disponivel = true
+         WHERE id = $1
+           AND (data_agenda + hora_inicio) > LOCALTIMESTAMP`,
+        [consultation.agenda_id]
       )
     }
 
     await client.query('COMMIT')
-
-    return res.json({ mensagem: 'Consulta deletada com sucesso' })
+    res.json({ mensagem: 'Consulta cancelada com sucesso' })
   } catch (error) {
-    await client.query('ROLLBACK')
-    return res.status(500).json({ erro: error.message })
+    next(await rollbackTransaction(client, error))
   } finally {
     client.release()
   }
 }
 
 module.exports = {
-  criarConsulta,
-  listarConsultas,
-  buscarConsultaPorId,
-  realizarCheckIn,
   atualizarStatusConsulta,
-  deletarConsulta
+  buscarConsultaPorId,
+  criarConsulta,
+  deletarConsulta,
+  listarConsultas,
+  realizarCheckIn,
 }

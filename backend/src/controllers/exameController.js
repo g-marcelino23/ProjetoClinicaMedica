@@ -1,382 +1,249 @@
 const pool = require('../config/db')
+const {
+  rollbackTransaction,
+} = require('../services/transactionService')
+const {
+  canCreateClinicalArtifact,
+  canTransitionExam,
+} = require('../domain/workflowPolicy')
 
-// Listar exames
-const listarExames = async (req, res) => {
-  try {
-    const { perfil, id: usuarioId } = req.usuario
-
-    let result
-
-    if (perfil === 'PACIENTE') {
-      const pacienteResult = await pool.query(
-        `
-        SELECT id
-        FROM pacientes
-        WHERE usuario_id = $1
-        `,
-        [usuarioId]
-      )
-
-      if (pacienteResult.rows.length === 0) {
-        return res.status(404).json({
-          erro: 'Paciente não encontrado.'
-        })
-      }
-
-      const pacienteId = pacienteResult.rows[0].id
-
-      result = await pool.query(
-        `
-        SELECT
-          e.*,
-          u_paciente.nome AS paciente_nome,
-          u_medico.nome AS medico_nome
-        FROM exames e
-        LEFT JOIN pacientes p ON p.id = e.paciente_id
-        LEFT JOIN usuarios u_paciente ON u_paciente.id = p.usuario_id
-        LEFT JOIN medicos m ON m.id = e.medico_id
-        LEFT JOIN usuarios u_medico ON u_medico.id = m.usuario_id
-        WHERE e.paciente_id = $1
-        ORDER BY e.id DESC
-        `,
-        [pacienteId]
-      )
-    } else if (perfil === 'MEDICO') {
-      const medicoResult = await pool.query(
-        `
-        SELECT id
-        FROM medicos
-        WHERE usuario_id = $1
-        `,
-        [usuarioId]
-      )
-
-      if (medicoResult.rows.length === 0) {
-        return res.status(404).json({
-          erro: 'Médico não encontrado.'
-        })
-      }
-
-      const medicoId = medicoResult.rows[0].id
-
-      result = await pool.query(
-        `
-        SELECT
-          e.*,
-          u_paciente.nome AS paciente_nome,
-          u_medico.nome AS medico_nome
-        FROM exames e
-        LEFT JOIN pacientes p ON p.id = e.paciente_id
-        LEFT JOIN usuarios u_paciente ON u_paciente.id = p.usuario_id
-        LEFT JOIN medicos m ON m.id = e.medico_id
-        LEFT JOIN usuarios u_medico ON u_medico.id = m.usuario_id
-        WHERE e.medico_id = $1
-        ORDER BY e.id DESC
-        `,
-        [medicoId]
-      )
-    } else {
-      result = await pool.query(
-        `
-        SELECT
-          e.*,
-          u_paciente.nome AS paciente_nome,
-          u_medico.nome AS medico_nome
-        FROM exames e
-        LEFT JOIN pacientes p ON p.id = e.paciente_id
-        LEFT JOIN usuarios u_paciente ON u_paciente.id = p.usuario_id
-        LEFT JOIN medicos m ON m.id = e.medico_id
-        LEFT JOIN usuarios u_medico ON u_medico.id = m.usuario_id
-        ORDER BY e.id DESC
-        `
-      )
+const getExamSelect = (user) => `
+  SELECT
+    e.id,
+    e.consulta_id,
+    e.paciente_id,
+    e.medico_id,
+    e.nome_exame,
+    e.status,
+    e.data_exame,
+    e.created_at,
+    e.updated_at,
+    u_paciente.nome AS paciente_nome,
+    u_medico.nome AS medico_nome
+    ${
+      user.perfil === 'SECRETARIO'
+        ? ''
+        : ', e.descricao, e.resultado, e.observacoes'
     }
+  FROM exames e
+  JOIN pacientes p ON p.id = e.paciente_id
+  JOIN usuarios u_paciente ON u_paciente.id = p.usuario_id
+  JOIN medicos m ON m.id = e.medico_id
+  JOIN usuarios u_medico ON u_medico.id = m.usuario_id
+`
 
+const getExamScope = (user, parameterIndex = 1) => {
+  if (user.perfil === 'SECRETARIO') {
+    return { clause: 'true', params: [] }
+  }
+
+  if (user.perfil === 'PACIENTE' && user.paciente_id) {
+    return {
+      clause: `e.paciente_id = $${parameterIndex}`,
+      params: [user.paciente_id],
+    }
+  }
+
+  if (user.perfil === 'MEDICO' && user.medico_id) {
+    return {
+      clause: `e.medico_id = $${parameterIndex}`,
+      params: [user.medico_id],
+    }
+  }
+
+  return { clause: 'false', params: [] }
+}
+
+const listarExames = async (req, res, next) => {
+  try {
+    const scope = getExamScope(req.usuario)
+    const result = await pool.query(
+      `${getExamSelect(req.usuario)}
+       WHERE ${scope.clause}
+       ORDER BY e.id DESC`,
+      scope.params
+    )
     res.json(result.rows)
   } catch (error) {
-    console.error('Erro ao listar exames:', error)
-    res.status(500).json({ erro: 'Erro ao listar exames.' })
+    next(error)
   }
 }
 
-// Buscar exame por ID
-const buscarExamePorId = async (req, res) => {
+const buscarExamePorId = async (req, res, next) => {
   try {
-    const { id } = req.params
-    const { perfil, id: usuarioId } = req.usuario
-
-    let result
-
-    if (perfil === 'PACIENTE') {
-      const pacienteResult = await pool.query(
-        `
-        SELECT id
-        FROM pacientes
-        WHERE usuario_id = $1
-        `,
-        [usuarioId]
-      )
-
-      if (pacienteResult.rows.length === 0) {
-        return res.status(404).json({ erro: 'Paciente não encontrado.' })
-      }
-
-      const pacienteId = pacienteResult.rows[0].id
-
-      result = await pool.query(
-        `
-        SELECT
-          e.*,
-          u_paciente.nome AS paciente_nome,
-          u_medico.nome AS medico_nome
-        FROM exames e
-        LEFT JOIN pacientes p ON p.id = e.paciente_id
-        LEFT JOIN usuarios u_paciente ON u_paciente.id = p.usuario_id
-        LEFT JOIN medicos m ON m.id = e.medico_id
-        LEFT JOIN usuarios u_medico ON u_medico.id = m.usuario_id
-        WHERE e.id = $1 AND e.paciente_id = $2
-        `,
-        [id, pacienteId]
-      )
-    } else {
-      result = await pool.query(
-        `
-        SELECT
-          e.*,
-          u_paciente.nome AS paciente_nome,
-          u_medico.nome AS medico_nome
-        FROM exames e
-        LEFT JOIN pacientes p ON p.id = e.paciente_id
-        LEFT JOIN usuarios u_paciente ON u_paciente.id = p.usuario_id
-        LEFT JOIN medicos m ON m.id = e.medico_id
-        LEFT JOIN usuarios u_medico ON u_medico.id = m.usuario_id
-        WHERE e.id = $1
-        `,
-        [id]
-      )
-    }
+    const scope = getExamScope(req.usuario, 2)
+    const result = await pool.query(
+      `${getExamSelect(req.usuario)}
+       WHERE e.id = $1 AND ${scope.clause}`,
+      [req.params.id, ...scope.params]
+    )
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ erro: 'Exame não encontrado.' })
+      return res.status(404).json({ erro: 'Exame não encontrado' })
     }
 
     res.json(result.rows[0])
   } catch (error) {
-    console.error('Erro ao buscar exame:', error)
-    res.status(500).json({ erro: 'Erro ao buscar exame.' })
+    next(error)
   }
 }
 
-// Criar exame
-const criarExame = async (req, res) => {
+const criarExame = async (req, res, next) => {
   try {
-    const { perfil, id: usuarioId } = req.usuario
-
-    if (perfil === 'PACIENTE') {
-      return res.status(403).json({
-        erro: 'Paciente não pode cadastrar exames'
-      })
-    }
-
-    const {
-      consulta_id,
-      nome_exame,
-      descricao,
-      status,
-      data_exame,
-      resultado,
-      observacoes
-    } = req.body
-
-    if (!consulta_id || !nome_exame) {
-      return res.status(400).json({
-        erro: 'consulta_id e nome_exame são obrigatórios'
-      })
-    }
-
-    const consultaResult = await pool.query(
-      `
-      SELECT id, paciente_id, medico_id
-      FROM consultas
-      WHERE id = $1
-      `,
-      [consulta_id]
+    const consultationResult = await pool.query(
+      `SELECT id, paciente_id, medico_id, status
+       FROM consultas
+       WHERE id = $1 AND medico_id = $2`,
+      [req.body.consulta_id, req.usuario.medico_id]
     )
 
-    if (consultaResult.rows.length === 0) {
-      return res.status(404).json({ erro: 'Consulta não encontrada.' })
+    if (consultationResult.rows.length === 0) {
+      return res.status(404).json({ erro: 'Consulta vinculada ao médico não encontrada' })
     }
 
-    const consulta = consultaResult.rows[0]
+    const consultation = consultationResult.rows[0]
 
-    if (perfil === 'MEDICO') {
-      const medicoResult = await pool.query(
-        `
-        SELECT id
-        FROM medicos
-        WHERE usuario_id = $1
-        `,
-        [usuarioId]
-      )
-
-      if (medicoResult.rows.length === 0) {
-        return res.status(404).json({ erro: 'Médico não encontrado.' })
-      }
-
-      const medicoIdLogado = medicoResult.rows[0].id
-
-      if (Number(consulta.medico_id) !== Number(medicoIdLogado)) {
-        return res.status(403).json({
-          erro: 'Você só pode cadastrar exame para consultas vinculadas a você.'
-        })
-      }
+    if (!canCreateClinicalArtifact(consultation.status)) {
+      return res.status(409).json({
+        erro: 'Exame só pode ser solicitado em consulta confirmada ou realizada',
+      })
     }
 
-    if ((status === 'REALIZADO' || status === 'ENTREGUE') && !resultado) {
+    if (req.body.status && req.body.status !== 'SOLICITADO') {
+      return res.status(409).json({
+        erro: 'Todo novo exame deve iniciar com status SOLICITADO',
+      })
+    }
+
+    if (
+      ['REALIZADO', 'ENTREGUE'].includes(req.body.status) &&
+      !req.body.resultado
+    ) {
       return res.status(400).json({
-        erro: 'Resultado é obrigatório para exames REALIZADO ou ENTREGUE.'
+        erro: 'Resultado é obrigatório para exame realizado ou entregue',
       })
     }
 
     const result = await pool.query(
-      `
-      INSERT INTO exames
-      (
-        consulta_id,
-        paciente_id,
-        medico_id,
-        nome_exame,
-        descricao,
-        status,
-        data_exame,
-        resultado,
-        observacoes
-      )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING *
-      `,
+      `INSERT INTO exames (
+         consulta_id, paciente_id, medico_id, nome_exame, descricao,
+         status, data_exame, resultado, observacoes
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING *`,
       [
-        consulta.id,
-        consulta.paciente_id,
-        consulta.medico_id,
-        nome_exame,
-        descricao || null,
-        status || 'SOLICITADO',
-        data_exame || null,
-        resultado || null,
-        observacoes || null
+        consultation.id,
+        consultation.paciente_id,
+        consultation.medico_id,
+        req.body.nome_exame,
+        req.body.descricao || null,
+        req.body.status || 'SOLICITADO',
+        req.body.data_exame || null,
+        req.body.resultado || null,
+        req.body.observacoes || null,
       ]
     )
 
     res.status(201).json(result.rows[0])
   } catch (error) {
-    console.error('Erro ao criar exame:', error)
-    res.status(500).json({ erro: 'Erro ao criar exame.' })
+    next(error)
   }
 }
 
-// Atualizar exame
-const atualizarExame = async (req, res) => {
+const atualizarExame = async (req, res, next) => {
+  const client = await pool.connect()
+
   try {
-    const { perfil } = req.usuario
+    await client.query('BEGIN')
 
-    if (perfil === 'PACIENTE') {
-      return res.status(403).json({
-        erro: 'Paciente não pode editar exames'
-      })
-    }
-
-    const { id } = req.params
-    const {
-      nome_exame,
-      descricao,
-      status,
-      data_exame,
-      resultado,
-      observacoes
-    } = req.body
-
-    const exameExiste = await pool.query(
-      'SELECT * FROM exames WHERE id = $1',
-      [id]
+    const currentResult = await client.query(
+      `SELECT id, status
+       FROM exames
+       WHERE id = $1 AND medico_id = $2
+       FOR UPDATE`,
+      [req.params.id, req.usuario.medico_id]
     )
 
-    if (exameExiste.rows.length === 0) {
-      return res.status(404).json({ erro: 'Exame não encontrado.' })
+    if (currentResult.rows.length === 0) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ erro: 'Exame não encontrado' })
     }
 
-    if ((status === 'REALIZADO' || status === 'ENTREGUE') && !resultado) {
-      return res.status(400).json({
-        erro: 'Resultado é obrigatório para exames REALIZADO ou ENTREGUE.'
+    if (!canTransitionExam(currentResult.rows[0].status, req.body.status)) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        erro: 'Transição de status do exame não permitida',
       })
     }
 
-    const result = await pool.query(
-      `
-      UPDATE exames
-      SET
-        nome_exame = $1,
-        descricao = $2,
-        status = $3,
-        data_exame = $4,
-        resultado = $5,
-        observacoes = $6
-      WHERE id = $7
-      RETURNING *
-      `,
+    if (
+      ['REALIZADO', 'ENTREGUE'].includes(req.body.status) &&
+      !req.body.resultado
+    ) {
+      await client.query('ROLLBACK')
+      return res.status(400).json({
+        erro: 'Resultado é obrigatório para exame realizado ou entregue',
+      })
+    }
+
+    const result = await client.query(
+      `UPDATE exames
+       SET nome_exame = $1,
+           descricao = $2,
+           status = $3,
+           data_exame = $4,
+           resultado = $5,
+           observacoes = $6,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $7 AND medico_id = $8
+       RETURNING *`,
       [
-        nome_exame,
-        descricao,
-        status,
-        data_exame,
-        resultado,
-        observacoes,
-        id
+        req.body.nome_exame,
+        req.body.descricao || null,
+        req.body.status,
+        req.body.data_exame || null,
+        req.body.resultado || null,
+        req.body.observacoes || null,
+        req.params.id,
+        req.usuario.medico_id,
       ]
     )
 
+    await client.query('COMMIT')
     res.json(result.rows[0])
   } catch (error) {
-    console.error('Erro ao atualizar exame:', error)
-    res.status(500).json({ erro: 'Erro ao atualizar exame.' })
+    next(await rollbackTransaction(client, error))
+  } finally {
+    client.release()
   }
 }
 
-// Deletar exame
-const deletarExame = async (req, res) => {
+const deletarExame = async (req, res, next) => {
   try {
-    const { perfil } = req.usuario
+    const result = await pool.query(
+      `UPDATE exames
+       SET status = 'CANCELADO', updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND status IN ('SOLICITADO', 'AGENDADO')
+       RETURNING id`,
+      [req.params.id]
+    )
 
-    if (perfil !== 'SECRETARIO') {
-      return res.status(403).json({
-        erro: 'Apenas secretários podem excluir exames'
+    if (result.rows.length === 0) {
+      return res.status(409).json({
+        erro: 'Somente exames solicitados ou agendados podem ser cancelados',
       })
     }
 
-    const { id } = req.params
-
-    const exameExiste = await pool.query(
-      'SELECT * FROM exames WHERE id = $1',
-      [id]
-    )
-
-    if (exameExiste.rows.length === 0) {
-      return res.status(404).json({ erro: 'Exame não encontrado.' })
-    }
-
-    await pool.query('DELETE FROM exames WHERE id = $1', [id])
-
-    res.json({ mensagem: 'Exame excluído com sucesso.' })
+    res.json({ mensagem: 'Exame cancelado com sucesso' })
   } catch (error) {
-    console.error('Erro ao deletar exame:', error)
-    res.status(500).json({ erro: 'Erro ao deletar exame.' })
+    next(error)
   }
 }
 
 module.exports = {
-  listarExames,
+  atualizarExame,
   buscarExamePorId,
   criarExame,
-  atualizarExame,
-  deletarExame
+  deletarExame,
+  listarExames,
 }

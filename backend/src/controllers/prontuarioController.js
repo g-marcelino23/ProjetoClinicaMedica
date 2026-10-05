@@ -1,256 +1,202 @@
-const pool = require('../config/db');
+const pool = require('../config/db')
+const {
+  rollbackTransaction,
+} = require('../services/transactionService')
 
-const criarProntuario = async (req, res) => {
-    try {
-        const {
-            consulta_id,
-            paciente_id,
-            medico_id,
-            queixa_principal,
-            anamnese,
-            diagnostico,
-            observacoes
-        } = req.body;
+const RECORD_SELECT = `
+  SELECT
+    pr.id,
+    pr.consulta_id,
+    pr.paciente_id,
+    up.nome AS paciente_nome,
+    pr.medico_id,
+    um.nome AS medico_nome,
+    pr.queixa_principal,
+    pr.anamnese,
+    pr.diagnostico,
+    pr.observacoes,
+    pr.created_at,
+    pr.updated_at
+  FROM prontuarios pr
+  JOIN pacientes pa ON pa.id = pr.paciente_id
+  JOIN usuarios up ON up.id = pa.usuario_id
+  JOIN medicos m ON m.id = pr.medico_id
+  JOIN usuarios um ON um.id = m.usuario_id
+`
 
-        if (!consulta_id || !paciente_id || !medico_id) {
-            return res.status(400).json({
-                erro: 'consulta_id, paciente_id e medico_id são obrigatórios'
-            });
-        }
-
-        const consultaExiste = await pool.query(
-            'SELECT * FROM consultas WHERE id = $1',
-            [consulta_id]
-        );
-
-        if (consultaExiste.rows.length === 0) {
-            return res.status(404).json({ erro: 'Consulta não encontrada' });
-        }
-
-        const prontuarioExiste = await pool.query(
-            'SELECT id FROM prontuarios WHERE consulta_id = $1',
-            [consulta_id]
-        );
-
-        if (prontuarioExiste.rows.length > 0) {
-            return res.status(400).json({
-                erro: 'Já existe um prontuário para essa consulta'
-            });
-        }
-
-        const result = await pool.query(
-            `INSERT INTO prontuarios
-            (consulta_id, paciente_id, medico_id, queixa_principal, anamnese, diagnostico, observacoes)
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING *`,
-            [
-                consulta_id,
-                paciente_id,
-                medico_id,
-                queixa_principal,
-                anamnese,
-                diagnostico,
-                observacoes
-            ]
-        );
-
-        await pool.query(
-            `UPDATE consultas
-             SET status = 'REALIZADA',
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $1`,
-            [consulta_id]
-        );
-
-        res.status(201).json({
-            mensagem: 'Prontuário criado com sucesso',
-            prontuario: result.rows[0]
-        });
-    } catch (error) {
-        console.error('Erro ao criar prontuário:', error);
-        res.status(500).json({ erro: 'Erro ao criar prontuário' });
+const getRecordScope = (user, parameterIndex = 1) => {
+  if (user.perfil === 'PACIENTE' && user.paciente_id) {
+    return {
+      clause: `pr.paciente_id = $${parameterIndex}`,
+      params: [user.paciente_id],
     }
-};
+  }
 
-const listarProntuarios = async (req, res) => {
-    try {
-        const { perfil, paciente_id } = req.usuario;
-
-        let result;
-
-        if (perfil === 'PACIENTE') {
-            if (!paciente_id) {
-                return res.status(403).json({
-                    erro: 'Paciente não vinculado corretamente ao usuário'
-                });
-            }
-
-            result = await pool.query(
-                `SELECT
-                    p.id,
-                    p.consulta_id,
-                    p.paciente_id,
-                    up.nome AS paciente_nome,
-                    p.medico_id,
-                    um.nome AS medico_nome,
-                    p.queixa_principal,
-                    p.anamnese,
-                    p.diagnostico,
-                    p.observacoes,
-                    p.created_at
-                FROM prontuarios p
-                JOIN pacientes pa ON pa.id = p.paciente_id
-                JOIN usuarios up ON up.id = pa.usuario_id
-                JOIN medicos m ON m.id = p.medico_id
-                JOIN usuarios um ON um.id = m.usuario_id
-                WHERE p.paciente_id = $1
-                ORDER BY p.created_at DESC`,
-                [paciente_id]
-            );
-        } else {
-            result = await pool.query(
-                `SELECT
-                    p.id,
-                    p.consulta_id,
-                    p.paciente_id,
-                    up.nome AS paciente_nome,
-                    p.medico_id,
-                    um.nome AS medico_nome,
-                    p.queixa_principal,
-                    p.anamnese,
-                    p.diagnostico,
-                    p.observacoes,
-                    p.created_at
-                FROM prontuarios p
-                JOIN pacientes pa ON pa.id = p.paciente_id
-                JOIN usuarios up ON up.id = pa.usuario_id
-                JOIN medicos m ON m.id = p.medico_id
-                JOIN usuarios um ON um.id = m.usuario_id
-                ORDER BY p.created_at DESC`
-            );
-        }
-
-        res.json(result.rows);
-    } catch (error) {
-        console.error('Erro ao listar prontuários:', error);
-        res.status(500).json({ erro: 'Erro ao listar prontuários' });
+  if (user.perfil === 'MEDICO' && user.medico_id) {
+    return {
+      clause: `pr.medico_id = $${parameterIndex}`,
+      params: [user.medico_id],
     }
-};
+  }
 
-const buscarProntuarioPorId = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { perfil, paciente_id } = req.usuario;
+  return { clause: 'false', params: [] }
+}
 
-        let result;
+const criarProntuario = async (req, res, next) => {
+  const client = await pool.connect()
 
-        if (perfil === 'PACIENTE') {
-            if (!paciente_id) {
-                return res.status(403).json({
-                    erro: 'Paciente não vinculado corretamente ao usuário'
-                });
-            }
+  try {
+    await client.query('BEGIN')
+    const consultationResult = await client.query(
+      `SELECT
+         id,
+         paciente_id,
+         medico_id,
+         status,
+         (data_consulta + hora_consulta) <= LOCALTIMESTAMP
+           AS horario_iniciado
+       FROM consultas
+       WHERE id = $1 AND medico_id = $2
+       FOR UPDATE`,
+      [req.body.consulta_id, req.usuario.medico_id]
+    )
 
-            result = await pool.query(
-                `SELECT
-                    p.id,
-                    p.consulta_id,
-                    p.paciente_id,
-                    up.nome AS paciente_nome,
-                    p.medico_id,
-                    um.nome AS medico_nome,
-                    p.queixa_principal,
-                    p.anamnese,
-                    p.diagnostico,
-                    p.observacoes,
-                    p.created_at
-                FROM prontuarios p
-                JOIN pacientes pa ON pa.id = p.paciente_id
-                JOIN usuarios up ON up.id = pa.usuario_id
-                JOIN medicos m ON m.id = p.medico_id
-                JOIN usuarios um ON um.id = m.usuario_id
-                WHERE p.id = $1 AND p.paciente_id = $2`,
-                [id, paciente_id]
-            );
-        } else {
-            result = await pool.query(
-                `SELECT
-                    p.id,
-                    p.consulta_id,
-                    p.paciente_id,
-                    up.nome AS paciente_nome,
-                    p.medico_id,
-                    um.nome AS medico_nome,
-                    p.queixa_principal,
-                    p.anamnese,
-                    p.diagnostico,
-                    p.observacoes,
-                    p.created_at
-                FROM prontuarios p
-                JOIN pacientes pa ON pa.id = p.paciente_id
-                JOIN usuarios up ON up.id = pa.usuario_id
-                JOIN medicos m ON m.id = p.medico_id
-                JOIN usuarios um ON um.id = m.usuario_id
-                WHERE p.id = $1`,
-                [id]
-            );
-        }
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ erro: 'Prontuário não encontrado' });
-        }
-
-        res.json(result.rows[0]);
-    } catch (error) {
-        console.error('Erro ao buscar prontuário:', error);
-        res.status(500).json({ erro: 'Erro ao buscar prontuário' });
+    if (consultationResult.rows.length === 0) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ erro: 'Consulta vinculada ao médico não encontrada' })
     }
-};
 
-const atualizarProntuario = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const {
-            queixa_principal,
-            anamnese,
-            diagnostico,
-            observacoes
-        } = req.body;
+    const consultation = consultationResult.rows[0]
 
-        const prontuarioExiste = await pool.query(
-            'SELECT * FROM prontuarios WHERE id = $1',
-            [id]
-        );
-
-        if (prontuarioExiste.rows.length === 0) {
-            return res.status(404).json({ erro: 'Prontuário não encontrado' });
-        }
-
-        const result = await pool.query(
-            `UPDATE prontuarios
-             SET queixa_principal = $1,
-                 anamnese = $2,
-                 diagnostico = $3,
-                 observacoes = $4,
-                 updated_at = CURRENT_TIMESTAMP
-             WHERE id = $5
-             RETURNING *`,
-            [queixa_principal, anamnese, diagnostico, observacoes, id]
-        );
-
-        res.json({
-            mensagem: 'Prontuário atualizado com sucesso',
-            prontuario: result.rows[0]
-        });
-    } catch (error) {
-        console.error('Erro ao atualizar prontuário:', error);
-        res.status(500).json({ erro: 'Erro ao atualizar prontuário' });
+    if (consultation.status !== 'CONFIRMADA') {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        erro: 'Prontuário só pode ser criado para consulta confirmada',
+      })
     }
-};
+
+    if (!consultation.horario_iniciado) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        erro: 'Prontuário não pode ser criado antes do horário da consulta',
+      })
+    }
+
+    const result = await client.query(
+      `INSERT INTO prontuarios (
+         consulta_id, paciente_id, medico_id, queixa_principal,
+         anamnese, diagnostico, observacoes
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [
+        consultation.id,
+        consultation.paciente_id,
+        consultation.medico_id,
+        req.body.queixa_principal || null,
+        req.body.anamnese || null,
+        req.body.diagnostico || null,
+        req.body.observacoes || null,
+      ]
+    )
+
+    await client.query(
+      `UPDATE consultas
+       SET status = 'REALIZADA', updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1`,
+      [consultation.id]
+    )
+
+    await client.query('COMMIT')
+    res.status(201).json({
+      mensagem: 'Prontuário criado com sucesso',
+      prontuario: result.rows[0],
+    })
+  } catch (error) {
+    const transactionError = await rollbackTransaction(client, error)
+    if (transactionError !== error) return next(transactionError)
+
+    if (error.code === '23505') {
+      return res.status(409).json({ erro: 'Já existe prontuário para esta consulta' })
+    }
+
+    next(error)
+  } finally {
+    client.release()
+  }
+}
+
+const listarProntuarios = async (req, res, next) => {
+  try {
+    const scope = getRecordScope(req.usuario)
+    const result = await pool.query(
+      `${RECORD_SELECT}
+       WHERE ${scope.clause}
+       ORDER BY pr.created_at DESC`,
+      scope.params
+    )
+    res.json(result.rows)
+  } catch (error) {
+    next(error)
+  }
+}
+
+const buscarProntuarioPorId = async (req, res, next) => {
+  try {
+    const scope = getRecordScope(req.usuario, 2)
+    const result = await pool.query(
+      `${RECORD_SELECT}
+       WHERE pr.id = $1 AND ${scope.clause}`,
+      [req.params.id, ...scope.params]
+    )
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: 'Prontuário não encontrado' })
+    }
+
+    res.json(result.rows[0])
+  } catch (error) {
+    next(error)
+  }
+}
+
+const atualizarProntuario = async (req, res, next) => {
+  try {
+    const result = await pool.query(
+      `UPDATE prontuarios
+       SET queixa_principal = $1,
+           anamnese = $2,
+           diagnostico = $3,
+           observacoes = $4,
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5 AND medico_id = $6
+       RETURNING *`,
+      [
+        req.body.queixa_principal || null,
+        req.body.anamnese || null,
+        req.body.diagnostico || null,
+        req.body.observacoes || null,
+        req.params.id,
+        req.usuario.medico_id,
+      ]
+    )
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: 'Prontuário não encontrado' })
+    }
+
+    res.json({
+      mensagem: 'Prontuário atualizado com sucesso',
+      prontuario: result.rows[0],
+    })
+  } catch (error) {
+    next(error)
+  }
+}
 
 module.exports = {
-    criarProntuario,
-    listarProntuarios,
-    buscarProntuarioPorId,
-    atualizarProntuario
-};
+  atualizarProntuario,
+  buscarProntuarioPorId,
+  criarProntuario,
+  listarProntuarios,
+}

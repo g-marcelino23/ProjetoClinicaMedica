@@ -1,48 +1,42 @@
-const express = require('express');
-const router = express.Router();
+const express = require('express')
+const router = express.Router()
+const consultaController = require('../controllers/consultaController')
+const authMiddleware = require('../middlewares/authMiddleware')
+const roleMiddleware = require('../middlewares/roleMiddleware')
+const validate = require('../middlewares/validate')
+const schemas = require('../validation/schemas')
 
-const consultaController = require('../controllers/consultaController');
-const authMiddleware = require('../middlewares/authMiddleware');
-const roleMiddleware = require('../middlewares/roleMiddleware');
+router.use(authMiddleware)
 
 router.post(
   '/',
-  authMiddleware,
   roleMiddleware(['PACIENTE', 'SECRETARIO']),
+  validate(schemas.consultations.create),
   consultaController.criarConsulta
-);
-
-router.get(
-  '/',
-  authMiddleware,
-  consultaController.listarConsultas
-);
-
+)
+router.get('/', consultaController.listarConsultas)
 router.get(
   '/:id',
-  authMiddleware,
+  validate(schemas.consultations.id),
   consultaController.buscarConsultaPorId
-);
-
+)
 router.patch(
   '/:id/check-in',
-  authMiddleware,
   roleMiddleware(['PACIENTE']),
+  validate(schemas.consultations.id),
   consultaController.realizarCheckIn
-);
-
+)
 router.put(
   '/:id',
-  authMiddleware,
   roleMiddleware(['MEDICO', 'SECRETARIO']),
+  validate(schemas.consultations.update),
   consultaController.atualizarStatusConsulta
-);
-
+)
 router.delete(
   '/:id',
-  authMiddleware,
   roleMiddleware(['SECRETARIO']),
+  validate(schemas.consultations.id),
   consultaController.deletarConsulta
-);
+)
 
-module.exports = router;
+module.exports = router

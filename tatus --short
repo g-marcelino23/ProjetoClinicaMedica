@@ -1,0 +1,337 @@
+docs/AUTHENTICATION_SECURITY.md:3: trailing whitespace.
+[32m+[m[32m**Categoria:** OWASP Top 10:2025 A07 – Authentication Failures[m[41m  [m
+docs/DATA_INTEGRITY_SECURITY.md:3: trailing whitespace.
+[32m+[m[32m**Revisão:** 05/10/2026[m[41m  [m
+docs/EXCEPTION_HANDLING_SECURITY.md:3: trailing whitespace.
+[32m+[m[32m**Revisão:** 29/07/2026[m[41m  [m
+docs/OWASP_TOP_10_2025.md:3: trailing whitespace.
+[32m+[m[32m**Projeto:** ClinicalMed[m[41m  [m
+docs/OWASP_TOP_10_2025.md:4: trailing whitespace.
+[32m+[m[32m**Data da reavaliação:** 05/10/2026[m[41m  [m
+docs/SECURE_DESIGN.md:3: trailing whitespace.
+[32m+[m[32m**Categoria:** OWASP Top 10:2025 A06 – Insecure Design[m[41m  [m
+docs/SECURITY_LOGGING_AND_ALERTING.md:3: trailing whitespace.
+[32m+[m[32m**Revisão:** 28/07/2026[m[41m  [m
+docs/THREAT_MODEL.md:3: trailing whitespace.
+[32m+[m[32m**Revisão:** 28/07/2026[m[41m  [m
+docs/THREAT_MODEL.md:4: trailing whitespace.
+[32m+[m[32m**Método:** ativos, fronteiras de confiança, STRIDE e casos de abuso[m[41m  [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:58: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:59: trailing whitespace.
+[32m+[m[41m							 [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:60: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:61: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:62: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:63: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:68: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:69: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:70: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:71: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:72: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:73: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:74: trailing whitespace.
+[32m+[m[41m							  [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:75: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:76: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:77: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:78: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:79: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:80: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:85: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:90: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:91: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:92: trailing whitespace.
+[32m+[m[41m							  [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:93: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:94: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:95: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:96: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:97: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:98: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:103: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:104: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:105: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:106: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:107: trailing whitespace.
+[32m+[m[41m							  [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:128: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:131: trailing whitespace.
+[32m+[m[41m	[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:132: trailing whitespace.
+[32m+[m	[32m  Ambiente local com dados ficticios. Perfis PACIENTE, MEDICO e SECRETARIO. Spider, Passive Scan e Active Scan. A API foi reiniciada entre perfis devido ao rate limit HTTP 429.[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:133: trailing whitespace.
+[32m+[m[41m	  [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:135: trailing whitespace.
+[32m+[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:144: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:145: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:146: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:147: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:153: trailing whitespace.
+[32m+[m[41m					  [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:156: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:162: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:169: trailing whitespace.
+[32m+[m[41m						 [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:175: trailing whitespace.
+[32m+[m[41m						[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:181: trailing whitespace.
+[32m+[m[41m						[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:182: trailing whitespace.
+[32m+[m[41m						[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:187: trailing whitespace.
+[32m+[m[41m						[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:189: trailing whitespace.
+[32m+[m[41m						[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:195: trailing whitespace.
+[32m+[m[41m		[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:197: trailing whitespace.
+[32m+[m[41m			[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:199: trailing whitespace.
+[32m+[m[41m		[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:257: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:272: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:287: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:348: trailing whitespace.
+[32m+[m									[32mclass="additional-info-percentages">(= Alto)</span>[m[41m  [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:352: trailing whitespace.
+[32m+[m									[32mclass="additional-info-percentages">(&gt;= Médio)</span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:356: trailing whitespace.
+[32m+[m									[32mclass="additional-info-percentages">(&gt;= Baixo)</span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:360: trailing whitespace.
+[32m+[m									[32mclass="additional-info-percentages">(&gt;= Informativo)</span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:369: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:378: trailing whitespace.
+[32m+[m[41m							[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:459: trailing whitespace.
+[32m+[m[41m			[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:463: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:478: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:496: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:514: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:532: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:550: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:568: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:586: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:604: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:622: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:640: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:658: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:676: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:694: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:712: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:730: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:748: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:766: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:784: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:802: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:820: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:838: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:856: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:874: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:892: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:910: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:928: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:946: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:964: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:982: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1000: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1018: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1036: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1054: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1072: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1090: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1108: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1126: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1144: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1162: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1180: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1198: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1216: trailing whitespace.
+[32m+[m[41m					[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1225: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1226: trailing whitespace.
+[32m+[m[41m				 [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1227: trailing whitespace.
+[32m+[m[41m				 [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1228: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1229: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1237: trailing whitespace.
+[32m+[m[41m						[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1243: trailing whitespace.
+[32m+[m[41m								[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1254: trailing whitespace.
+[32m+[m[41m												[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1261: trailing whitespace.
+[32m+[m					[32m<span><a href="https://owasp.org/Top10/2021/A05_2021-Security_Misconfiguration/">OWASP_2021_A05</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1270: trailing whitespace.
+[32m+[m					[32m<span><a href="https://www.zaproxy.org/docs/desktop/addons/common-library/alerttags/#systemic">SYSTEMIC</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1273: trailing whitespace.
+[32m+[m					[32m<span><a href="https://cwe.mitre.org/data/definitions/693.html">CWE-693</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1276: trailing whitespace.
+[32m+[m					[32m<span><a href="https://owasp.org/www-project-top-ten/2017/A6_2017-Security_Misconfiguration.html">OWASP_2017_A06</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1279: trailing whitespace.
+[32m+[m					[32m<span><a href="https://owasp.org/Top10/2025/A02_2025-Security_Misconfiguration/">OWASP_2025_A02</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1289: trailing whitespace.
+[32m+[m		[32m<td>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1295: trailing whitespace.
+[32m+[m		[32m<td>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1303: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1320: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1321: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1324: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1326: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1327: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1334: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1354: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1355: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1358: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1384: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1385: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1392: trailing whitespace.
+[32m+[m[41m	[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1399: trailing whitespace.
+[32m+[m		[32m<td>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1408: trailing whitespace.
+[32m+[m[41m								[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1419: trailing whitespace.
+[32m+[m[41m												[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1426: trailing whitespace.
+[32m+[m					[32m<span><a href="https://owasp.org/Top10/2021/A05_2021-Security_Misconfiguration/">OWASP_2021_A05</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1435: trailing whitespace.
+[32m+[m					[32m<span><a href="https://www.zaproxy.org/docs/desktop/addons/common-library/alerttags/#systemic">SYSTEMIC</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1438: trailing whitespace.
+[32m+[m					[32m<span><a href="https://cwe.mitre.org/data/definitions/693.html">CWE-693</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1441: trailing whitespace.
+[32m+[m					[32m<span><a href="https://owasp.org/www-project-top-ten/2017/A6_2017-Security_Misconfiguration.html">OWASP_2017_A06</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1444: trailing whitespace.
+[32m+[m					[32m<span><a href="https://owasp.org/Top10/2025/A02_2025-Security_Misconfiguration/">OWASP_2025_A02</a></span>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1454: trailing whitespace.
+[32m+[m		[32m<td>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1460: trailing whitespace.
+[32m+[m		[32m<td>[m[41m [m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1468: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1485: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1486: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1489: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1491: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1492: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1499: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1519: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1520: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1523: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1549: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1550: trailing whitespace.
+[32m+[m[41m				[m
+reports/zap-2026-09-30/clinicalmed-zap-active-2026-09-30.html:1557: trailing whitespace.
+[32m+[m[41m	[m
+report

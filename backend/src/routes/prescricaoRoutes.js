@@ -1,54 +1,38 @@
 const express = require('express')
 const router = express.Router()
-
-const {
-    listarPrescricoes,
-    listarMinhasPrescricoes,
-    buscarPrescricaoPorId,
-    criarPrescricao,
-    atualizarPrescricao,
-    deletarPrescricao
-} = require('../controllers/prescricaoController')
-
+const controller = require('../controllers/prescricaoController')
 const authMiddleware = require('../middlewares/authMiddleware')
 const roleMiddleware = require('../middlewares/roleMiddleware')
+const validate = require('../middlewares/validate')
+const schemas = require('../validation/schemas')
 
 router.use(authMiddleware)
 
+router.get('/', roleMiddleware(['MEDICO']), controller.listarPrescricoes)
+router.get('/minhas', roleMiddleware(['PACIENTE']), controller.listarMinhasPrescricoes)
 router.get(
-    '/',
-    roleMiddleware(['MEDICO', 'SECRETARIO']),
-    listarPrescricoes
+  '/:id',
+  roleMiddleware(['PACIENTE', 'MEDICO']),
+  validate(schemas.prescriptions.id),
+  controller.buscarPrescricaoPorId
 )
-
-router.get(
-    '/minhas',
-    roleMiddleware(['PACIENTE']),
-    listarMinhasPrescricoes
-)
-
-router.get(
-    '/:id',
-    roleMiddleware(['PACIENTE', 'MEDICO', 'SECRETARIO']),
-    buscarPrescricaoPorId
-)
-
 router.post(
-    '/',
-    roleMiddleware(['MEDICO', 'SECRETARIO']),
-    criarPrescricao
+  '/',
+  roleMiddleware(['MEDICO']),
+  validate(schemas.prescriptions.create),
+  controller.criarPrescricao
 )
-
 router.put(
-    '/:id',
-    roleMiddleware(['MEDICO', 'SECRETARIO']),
-    atualizarPrescricao
+  '/:id',
+  roleMiddleware(['MEDICO']),
+  validate(schemas.prescriptions.update),
+  controller.atualizarPrescricao
 )
-
 router.delete(
-    '/:id',
-    roleMiddleware(['MEDICO', 'SECRETARIO']),
-    deletarPrescricao
+  '/:id',
+  roleMiddleware(['MEDICO']),
+  validate(schemas.prescriptions.id),
+  controller.deletarPrescricao
 )
 
 module.exports = router

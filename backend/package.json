@@ -3,23 +3,54 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
- "scripts": {
-  "dev": "npx nodemon src/server.js",
-  "start": "node src/server.js"
-},
+  "private": true,
+  "packageManager": "npm@11.9.0",
+  "engines": {
+    "node": ">=24.14.0 <25",
+    "npm": ">=11 <12"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "seed:demo": "node scripts/seed-demo.js",
+    "migrate": "node scripts/migrate.js",
+    "check:crypto": "node scripts/crypto-smoke.js",
+    "check:injection": "node scripts/injection-static-check.js",
+    "check:design": "node scripts/design-static-check.js",
+    "check:authentication": "node scripts/authentication-static-check.js",
+    "check:integrity": "node scripts/integrity-static-check.js",
+    "check:logging": "node scripts/logging-static-check.js",
+    "check:exceptions": "node scripts/exception-static-check.js",
+    "smoke:injection": "node scripts/injection-smoke.js",
+    "smoke:design": "node scripts/design-smoke.js",
+    "smoke:authentication": "node scripts/authentication-smoke.js",
+    "smoke:integrity": "node scripts/integrity-smoke.js",
+    "smoke:logging": "node scripts/logging-smoke.js",
+    "smoke:exceptions": "node scripts/exception-smoke.js",
+    "rotate:data-key": "node scripts/rotate-data-key.js",
+    "provision:db-role": "node scripts/provision-app-role.js",
+    "smoke:security": "node scripts/security-smoke.js",
+    "smoke:config": "node scripts/configuration-smoke.js",
+    "test": "node --test",
+    "check": "node scripts/check-syntax.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "bcrypt": "^6.0.0",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "pg": "^8.20.0"
+    "bcrypt": "6.0.0",
+    "cookie-parser": "1.4.7",
+    "cors": "2.8.6",
+    "dotenv": "17.4.2",
+    "express": "5.2.1",
+    "express-rate-limit": "8.7.0",
+    "helmet": "8.3.0",
+    "jsonwebtoken": "9.0.3",
+    "pg": "8.22.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.14"
+    "@faker-js/faker": "10.6.0"
   }
 }

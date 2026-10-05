@@ -1,447 +1,854 @@
-import { useEffect, useState } from "react";
-import MainLayout from "../components/layout/MainLayout";
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Alert, Button, Form, Modal, Spinner } from 'react-bootstrap'
+import {
+  FaBan,
+  FaBell,
+  FaCalendarAlt,
+  FaCheck,
+  FaCheckCircle,
+  FaClock,
+  FaFilter,
+  FaHourglassHalf,
+  FaPlus,
+  FaSearch,
+  FaStethoscope,
+  FaSyncAlt,
+  FaUserClock,
+  FaUserInjured,
+  FaUserMd,
+  FaUsers
+} from 'react-icons/fa'
+import MainLayout from '../components/layout/MainLayout'
+import { listarPacientes } from '../services/pacientesService'
+import { listarMedicos } from '../services/medicosService'
+import {
+  adicionarListaEspera,
+  cancelarItemListaEspera,
+  chamarPacienteListaEspera,
+  encerrarItemListaEspera,
+  listarListaEspera
+} from '../services/listaEsperaService'
+import './ListaEspera.css'
+
+const FORM_INICIAL = {
+  paciente_id: '',
+  medico_id: '',
+  especialidade: '',
+  data_desejada: ''
+}
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'Todos os status' },
+  { value: 'ATIVO', label: 'Aguardando' },
+  { value: 'CHAMADO', label: 'Chamado' },
+  { value: 'ENCERRADO', label: 'Encerrado' },
+  { value: 'CANCELADO', label: 'Cancelado' }
+]
+
+const STATUS_LABELS = {
+  ATIVO: 'Aguardando',
+  CHAMADO: 'Chamado',
+  ENCERRADO: 'Encerrado',
+  CANCELADO: 'Cancelado'
+}
+
+function extrairLista(dados, chavePrincipal) {
+  if (Array.isArray(dados)) return dados
+  if (Array.isArray(dados?.[chavePrincipal])) return dados[chavePrincipal]
+  if (Array.isArray(dados?.data)) return dados.data
+  if (Array.isArray(dados?.items)) return dados.items
+  return []
+}
+
+function nomePaciente(paciente) {
+  return (
+    paciente.nome ||
+    paciente.paciente_nome ||
+    paciente.usuario_nome ||
+    paciente.nome_usuario ||
+    paciente.nome_paciente ||
+    `Paciente #${paciente.id}`
+  )
+}
+
+function nomeMedico(medico) {
+  return (
+    medico.nome ||
+    medico.medico_nome ||
+    medico.usuario_nome ||
+    medico.nome_usuario ||
+    medico.nome_medico ||
+    `Médico #${medico.id}`
+  )
+}
+
+function obterEspecialidadeMedico(medico) {
+  return (
+    medico.especialidade ||
+    medico.especialidade_medica ||
+    medico.area ||
+    medico.area_atuacao ||
+    medico.crm_especialidade ||
+    ''
+  )
+}
+
+function parseLocalDate(value) {
+  if (!value) return null
+
+  const [year, month, day] = String(value).slice(0, 10).split('-').map(Number)
+
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+function formatarData(value, fallback = 'Não informada') {
+  const date = parseLocalDate(value)
+
+  if (!date) return fallback
+  return date.toLocaleDateString('pt-BR')
+}
+
+function formatarEntrada(value) {
+  if (!value) return 'Data não informada'
+
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) return 'Data não informada'
+
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+function obterIniciais(nome) {
+  if (!nome) return '--'
+
+  return nome
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((parte) => parte[0])
+    .join('')
+    .toUpperCase()
+}
 
 function ListaEspera() {
-  const [lista, setLista] = useState([]);
-  const [pacientes, setPacientes] = useState([]);
-  const [medicos, setMedicos] = useState([]);
+  const [lista, setLista] = useState([])
+  const [pacientes, setPacientes] = useState([])
+  const [medicos, setMedicos] = useState([])
+  const [formData, setFormData] = useState(FORM_INICIAL)
 
-  const [pacienteId, setPacienteId] = useState("");
-  const [medicoId, setMedicoId] = useState("");
-  const [especialidade, setEspecialidade] = useState("");
-  const [dataDesejada, setDataDesejada] = useState("");
+  const [loading, setLoading] = useState(true)
+  const [salvando, setSalvando] = useState(false)
+  const [acaoEmAndamento, setAcaoEmAndamento] = useState(null)
+  const [mensagem, setMensagem] = useState('')
+  const [erro, setErro] = useState('')
+  const [erroModal, setErroModal] = useState('')
+  const [mostrarModal, setMostrarModal] = useState(false)
+  const [busca, setBusca] = useState('')
+  const [statusFiltro, setStatusFiltro] = useState('')
 
-  const [mensagem, setMensagem] = useState("");
-  const [erro, setErro] = useState("");
-  const [carregando, setCarregando] = useState(false);
-
-  const API_URL = "http://localhost:3001";
-
-  const getToken = () => {
-    return sessionStorage.getItem("token") || localStorage.getItem("token");
-  };
-
-  const extrairLista = (dados, chavePrincipal) => {
-    if (Array.isArray(dados)) {
-      return dados;
-    }
-
-    if (Array.isArray(dados[chavePrincipal])) {
-      return dados[chavePrincipal];
-    }
-
-    if (Array.isArray(dados.data)) {
-      return dados.data;
-    }
-
-    if (Array.isArray(dados.items)) {
-      return dados.items;
-    }
-
-    return [];
-  };
-
-  const carregarLista = async () => {
+  const carregarDados = useCallback(async () => {
     try {
-      const resposta = await fetch(`${API_URL}/lista-espera`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
-      });
+      setLoading(true)
+      setErro('')
 
-      const dados = await resposta.json();
+      const [dadosLista, dadosPacientes, dadosMedicos] = await Promise.all([
+        listarListaEspera(),
+        listarPacientes(),
+        listarMedicos()
+      ])
 
-      if (!resposta.ok) {
-        throw new Error(dados.erro || "Erro ao carregar lista de espera");
-      }
-
-      console.log("LISTA DE ESPERA RETORNADA:", dados);
-
-      const listaTratada = extrairLista(dados, "lista");
-      setLista(listaTratada);
+      setLista(extrairLista(dadosLista, 'lista'))
+      setPacientes(extrairLista(dadosPacientes, 'pacientes'))
+      setMedicos(extrairLista(dadosMedicos, 'medicos'))
     } catch (error) {
-      console.error("Erro ao carregar lista de espera:", error);
-      setErro(error.message);
-    }
-  };
-
-  const carregarPacientes = async () => {
-    try {
-      const resposta = await fetch(`${API_URL}/pacientes`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
-      });
-
-      const dados = await resposta.json();
-
-      if (!resposta.ok) {
-        throw new Error(dados.erro || "Erro ao carregar pacientes");
-      }
-
-      console.log("PACIENTES RETORNADOS:", dados);
-
-      const listaPacientes = extrairLista(dados, "pacientes");
-      setPacientes(listaPacientes);
-    } catch (error) {
-      console.error("Erro ao carregar pacientes:", error);
-      setErro(error.message);
-    }
-  };
-
-  const carregarMedicos = async () => {
-    try {
-      const resposta = await fetch(`${API_URL}/medicos`, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
-      });
-
-      const dados = await resposta.json();
-
-      if (!resposta.ok) {
-        throw new Error(dados.erro || "Erro ao carregar médicos");
-      }
-
-      console.log("MÉDICOS RETORNADOS:", dados);
-
-      const listaMedicos = extrairLista(dados, "medicos");
-      setMedicos(listaMedicos);
-    } catch (error) {
-      console.error("Erro ao carregar médicos:", error);
-      setErro(error.message);
-    }
-  };
-
-  const nomePaciente = (paciente) => {
-    return (
-      paciente.nome ||
-      paciente.paciente_nome ||
-      paciente.usuario_nome ||
-      paciente.nome_usuario ||
-      paciente.nome_paciente ||
-      `Paciente #${paciente.id}`
-    );
-  };
-
-  const nomeMedico = (medico) => {
-    return (
-      medico.nome ||
-      medico.medico_nome ||
-      medico.usuario_nome ||
-      medico.nome_usuario ||
-      medico.nome_medico ||
-      `Médico #${medico.id}`
-    );
-  };
-
-  const obterEspecialidadeMedico = (medico) => {
-    return (
-      medico.especialidade ||
-      medico.especialidade_medica ||
-      medico.area ||
-      medico.area_atuacao ||
-      medico.crm_especialidade ||
-      ""
-    );
-  };
-
-  const selecionarMedico = (idMedico) => {
-    setMedicoId(idMedico);
-
-    if (!idMedico) {
-      setEspecialidade("");
-      return;
-    }
-
-    const medicoSelecionado = medicos.find(
-      (medico) => Number(medico.id) === Number(idMedico)
-    );
-
-    if (medicoSelecionado) {
-      setEspecialidade(obterEspecialidadeMedico(medicoSelecionado));
-    }
-  };
-
-  const cadastrarNaLista = async (e) => {
-    e.preventDefault();
-
-    setMensagem("");
-    setErro("");
-
-    if (!pacienteId) {
-      setErro("Selecione um paciente.");
-      return;
-    }
-
-    try {
-      setCarregando(true);
-
-      const resposta = await fetch(`${API_URL}/lista-espera`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`
-        },
-        body: JSON.stringify({
-          paciente_id: Number(pacienteId),
-          medico_id: medicoId ? Number(medicoId) : null,
-          especialidade: especialidade || null,
-          data_desejada: dataDesejada || null
-        })
-      });
-
-      const dados = await resposta.json();
-
-      if (!resposta.ok) {
-        throw new Error(dados.erro || "Erro ao cadastrar na lista de espera");
-      }
-
-      setMensagem("Paciente adicionado à lista de espera com sucesso!");
-
-      setPacienteId("");
-      setMedicoId("");
-      setEspecialidade("");
-      setDataDesejada("");
-
-      await carregarLista();
-    } catch (error) {
-      console.error("Erro ao cadastrar na lista:", error);
-      setErro(error.message);
+      console.error('Erro ao carregar a lista de espera:', error)
+      setErro(error.response?.data?.erro || 'Erro ao carregar a lista de espera.')
     } finally {
-      setCarregando(false);
+      setLoading(false)
     }
-  };
-
-  const alterarStatus = async (id, acao) => {
-    setMensagem("");
-    setErro("");
-
-    try {
-      const resposta = await fetch(`${API_URL}/lista-espera/${id}/${acao}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${getToken()}`
-        }
-      });
-
-      const dados = await resposta.json();
-
-      if (!resposta.ok) {
-        throw new Error(dados.erro || "Erro ao atualizar item");
-      }
-
-      setMensagem(dados.mensagem || "Status atualizado com sucesso!");
-      await carregarLista();
-    } catch (error) {
-      console.error("Erro ao alterar status:", error);
-      setErro(error.message);
-    }
-  };
-
-  const formatarData = (data) => {
-    if (!data) {
-      return "Não informada";
-    }
-
-    return new Date(data).toLocaleDateString("pt-BR");
-  };
+  }, [])
 
   useEffect(() => {
-    carregarLista();
-    carregarPacientes();
-    carregarMedicos();
-  }, []);
+    carregarDados()
+  }, [carregarDados])
+
+  const estatisticas = useMemo(
+    () => ({
+      total: lista.length,
+      ativos: lista.filter((item) => item.status === 'ATIVO').length,
+      chamados: lista.filter((item) => item.status === 'CHAMADO').length,
+      encerrados: lista.filter((item) => item.status === 'ENCERRADO').length
+    }),
+    [lista]
+  )
+
+  const posicoesAtivas = useMemo(() => {
+    const posicoes = new Map()
+    let posicao = 0
+
+    lista.forEach((item) => {
+      if (item.status === 'ATIVO') {
+        posicao += 1
+        posicoes.set(item.id, posicao)
+      }
+    })
+
+    return posicoes
+  }, [lista])
+
+  const listaFiltrada = useMemo(() => {
+    const termo = busca.trim().toLocaleLowerCase('pt-BR')
+
+    return lista.filter((item) => {
+      const correspondeStatus = !statusFiltro || item.status === statusFiltro
+      const textoBusca = [
+        item.id,
+        item.paciente_nome,
+        item.medico_nome,
+        item.especialidade,
+        STATUS_LABELS[item.status],
+        item.status
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('pt-BR')
+      const correspondeBusca = !termo || textoBusca.includes(termo)
+
+      return correspondeStatus && correspondeBusca
+    })
+  }, [busca, lista, statusFiltro])
+
+  const abrirModal = () => {
+    setFormData(FORM_INICIAL)
+    setErroModal('')
+    setMostrarModal(true)
+  }
+
+  const fecharModal = () => {
+    if (salvando) return
+
+    setMostrarModal(false)
+    setErroModal('')
+  }
+
+  const handleFormChange = (event) => {
+    const { name, value } = event.target
+
+    setErroModal('')
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const selecionarMedico = (event) => {
+    const medicoId = event.target.value
+    const medicoSelecionado = medicos.find(
+      (medico) => Number(medico.id) === Number(medicoId)
+    )
+
+    setErroModal('')
+    setFormData((prev) => ({
+      ...prev,
+      medico_id: medicoId,
+      especialidade: medicoSelecionado
+        ? obterEspecialidadeMedico(medicoSelecionado)
+        : ''
+    }))
+  }
+
+  const cadastrarNaLista = async (event) => {
+    event.preventDefault()
+
+    if (!formData.paciente_id) {
+      setErroModal('Selecione um paciente.')
+      return
+    }
+
+    try {
+      setSalvando(true)
+      setErroModal('')
+      setErro('')
+      setMensagem('')
+
+      const resultado = await adicionarListaEspera({
+        paciente_id: Number(formData.paciente_id),
+        medico_id: formData.medico_id ? Number(formData.medico_id) : null,
+        especialidade: formData.especialidade || null,
+        data_desejada: formData.data_desejada || null
+      })
+
+      setMensagem(
+        resultado.mensagem || 'Paciente adicionado à lista de espera com sucesso!'
+      )
+      setMostrarModal(false)
+      setFormData(FORM_INICIAL)
+      await carregarDados()
+    } catch (error) {
+      console.error('Erro ao cadastrar na lista:', error)
+      setErroModal(
+        error.response?.data?.erro || 'Erro ao adicionar o paciente à lista.'
+      )
+    } finally {
+      setSalvando(false)
+    }
+  }
+
+  const alterarStatus = async (item, acao) => {
+    try {
+      setAcaoEmAndamento(`${item.id}-${acao}`)
+      setMensagem('')
+      setErro('')
+
+      let resultado
+
+      if (acao === 'chamar') {
+        resultado = await chamarPacienteListaEspera(item.id)
+      }
+
+      if (acao === 'encerrar') {
+        resultado = await encerrarItemListaEspera(item.id)
+      }
+
+      if (acao === 'cancelar') {
+        resultado = await cancelarItemListaEspera(item.id)
+      }
+
+      setMensagem(resultado?.mensagem || 'Status atualizado com sucesso!')
+      await carregarDados()
+    } catch (error) {
+      console.error('Erro ao alterar status:', error)
+      setErro(error.response?.data?.erro || 'Erro ao atualizar o item.')
+    } finally {
+      setAcaoEmAndamento(null)
+    }
+  }
+
+  const renderStatus = (status) => (
+    <span className={`waiting-status waiting-status--${status?.toLowerCase()}`}>
+      <span />
+      {STATUS_LABELS[status] || status || 'Sem status'}
+    </span>
+  )
+
+  const renderAcoes = (item) => {
+    const podeChamar = item.status === 'ATIVO'
+    const podeFinalizar = !['ENCERRADO', 'CANCELADO'].includes(item.status)
+
+    return (
+      <div className="waiting-actions">
+        <button
+          type="button"
+          className="waiting-action waiting-action--call"
+          onClick={() => alterarStatus(item, 'chamar')}
+          disabled={!podeChamar || Boolean(acaoEmAndamento)}
+          title="Chamar paciente"
+        >
+          {acaoEmAndamento === `${item.id}-chamar` ? (
+            <Spinner animation="border" size="sm" />
+          ) : (
+            <FaBell />
+          )}
+          <span>Chamar</span>
+        </button>
+
+        <button
+          type="button"
+          className="waiting-action waiting-action--finish"
+          onClick={() => alterarStatus(item, 'encerrar')}
+          disabled={!podeFinalizar || Boolean(acaoEmAndamento)}
+          title="Encerrar item"
+        >
+          {acaoEmAndamento === `${item.id}-encerrar` ? (
+            <Spinner animation="border" size="sm" />
+          ) : (
+            <FaCheck />
+          )}
+          <span>Encerrar</span>
+        </button>
+
+        <button
+          type="button"
+          className="waiting-action waiting-action--cancel"
+          onClick={() => alterarStatus(item, 'cancelar')}
+          disabled={!podeFinalizar || Boolean(acaoEmAndamento)}
+          title="Cancelar item"
+        >
+          {acaoEmAndamento === `${item.id}-cancelar` ? (
+            <Spinner animation="border" size="sm" />
+          ) : (
+            <FaBan />
+          )}
+          <span>Cancelar</span>
+        </button>
+      </div>
+    )
+  }
 
   return (
     <MainLayout>
-      <div className="container mt-4">
-        <h2>Lista de Espera</h2>
+      <div className="waiting-page">
+        <section className="waiting-hero">
+          <div className="waiting-hero__content">
+            <span className="waiting-hero__eyebrow">
+              <FaUserClock />
+              Organização de demanda
+            </span>
+            <h1>
+              Uma fila mais clara, um atendimento <span>mais ágil</span>
+            </h1>
+            <p>
+              Acompanhe quem aguarda disponibilidade, chame pacientes e mantenha
+              cada etapa da lista de espera sob controle.
+            </p>
+          </div>
 
-        <p className="text-muted">
-          Gerencie pacientes que aguardam disponibilidade para consulta.
-        </p>
+          <div className="waiting-hero__actions">
+            <div className="waiting-hero__active">
+              <span>
+                <FaHourglassHalf />
+              </span>
+              <div>
+                <small>Aguardando agora</small>
+                <strong>{estatisticas.ativos} pacientes</strong>
+              </div>
+            </div>
+            <Button className="waiting-add-button" onClick={abrirModal}>
+              <FaPlus />
+              Adicionar à fila
+            </Button>
+          </div>
 
-        {mensagem && <div className="alert alert-success">{mensagem}</div>}
+          <FaUsers className="waiting-hero__decoration" aria-hidden="true" />
+        </section>
 
-        {erro && <div className="alert alert-danger">{erro}</div>}
+        {mensagem && (
+          <Alert
+            variant="success"
+            className="waiting-feedback"
+            dismissible
+            onClose={() => setMensagem('')}
+          >
+            {mensagem}
+          </Alert>
+        )}
 
-        <div className="card mb-4">
-          <div className="card-header">Adicionar paciente à lista</div>
+        {erro && (
+          <Alert
+            variant="danger"
+            className="waiting-feedback"
+            dismissible
+            onClose={() => setErro('')}
+          >
+            {erro}
+          </Alert>
+        )}
 
-          <div className="card-body">
-            <form onSubmit={cadastrarNaLista}>
-              <div className="row">
-                <div className="col-md-3 mb-3">
-                  <label className="form-label">Paciente</label>
+        <section className="waiting-stats" aria-label="Resumo da lista de espera">
+          <article className="waiting-stat waiting-stat--blue">
+            <span className="waiting-stat__icon">
+              <FaUsers />
+            </span>
+            <span>
+              <small>Total na lista</small>
+              <strong>{estatisticas.total}</strong>
+              <p>Todos os registros</p>
+            </span>
+          </article>
 
-                  <select
-                    className="form-select"
-                    value={pacienteId}
-                    onChange={(e) => setPacienteId(e.target.value)}
-                    required
-                  >
-                    <option value="">Selecione um paciente</option>
+          <article className="waiting-stat waiting-stat--amber">
+            <span className="waiting-stat__icon">
+              <FaHourglassHalf />
+            </span>
+            <span>
+              <small>Aguardando</small>
+              <strong>{estatisticas.ativos}</strong>
+              <p>Na fila de atendimento</p>
+            </span>
+          </article>
 
-                    {pacientes.map((paciente) => (
-                      <option key={paciente.id} value={paciente.id}>
-                        {nomePaciente(paciente)}
-                      </option>
-                    ))}
-                  </select>
+          <article className="waiting-stat waiting-stat--violet">
+            <span className="waiting-stat__icon">
+              <FaBell />
+            </span>
+            <span>
+              <small>Chamados</small>
+              <strong>{estatisticas.chamados}</strong>
+              <p>Pacientes convocados</p>
+            </span>
+          </article>
 
-                  {pacientes.length === 0 && (
-                    <small className="text-muted">
-                      Nenhum paciente carregado.
-                    </small>
-                  )}
-                </div>
+          <article className="waiting-stat waiting-stat--green">
+            <span className="waiting-stat__icon">
+              <FaCheckCircle />
+            </span>
+            <span>
+              <small>Encerrados</small>
+              <strong>{estatisticas.encerrados}</strong>
+              <p>Fluxos finalizados</p>
+            </span>
+          </article>
+        </section>
 
-                <div className="col-md-3 mb-3">
-                  <label className="form-label">Médico</label>
+        <section className="waiting-workspace">
+          <div className="waiting-workspace__header">
+            <div className="waiting-workspace__title">
+              <span className="waiting-workspace__icon">
+                <FaUserClock />
+              </span>
+              <div>
+                <span>Fila de atendimento</span>
+                <h2>Pacientes na lista de espera</h2>
+                <p>
+                  {listaFiltrada.length}{' '}
+                  {listaFiltrada.length === 1 ? 'registro exibido' : 'registros exibidos'}
+                </p>
+              </div>
+            </div>
 
-                  <select
-                    className="form-select"
-                    value={medicoId}
-                    onChange={(e) => selecionarMedico(e.target.value)}
-                  >
-                    <option value="">Selecione um médico</option>
+            <div className="waiting-toolbar">
+              <div className="waiting-search">
+                <FaSearch />
+                <Form.Control
+                  type="search"
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder="Buscar paciente ou médico..."
+                  aria-label="Buscar na lista de espera"
+                />
+              </div>
 
-                    {medicos.map((medico) => (
-                      <option key={medico.id} value={medico.id}>
-                        {nomeMedico(medico)}
-                      </option>
-                    ))}
-                  </select>
-
-                  {medicos.length === 0 && (
-                    <small className="text-muted">
-                      Nenhum médico carregado.
-                    </small>
-                  )}
-                </div>
-
-                <div className="col-md-3 mb-3">
-                  <label className="form-label">Especialidade</label>
-
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={especialidade}
-                    readOnly
-                    placeholder="Será preenchida pelo médico"
-                  />
-                </div>
-
-                <div className="col-md-3 mb-3">
-                  <label className="form-label">Data desejada</label>
-
-                  <input
-                    type="date"
-                    className="form-control"
-                    value={dataDesejada}
-                    onChange={(e) => setDataDesejada(e.target.value)}
-                  />
-                </div>
+              <div className="waiting-status-filter">
+                <FaFilter />
+                <Form.Select
+                  value={statusFiltro}
+                  onChange={(event) => setStatusFiltro(event.target.value)}
+                  aria-label="Filtrar por status"
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </Form.Select>
               </div>
 
               <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={carregando}
+                type="button"
+                className="waiting-refresh"
+                onClick={carregarDados}
+                disabled={loading}
+                aria-label="Atualizar lista"
+                title="Atualizar lista"
               >
-                {carregando ? "Adicionando..." : "Adicionar à lista"}
+                <FaSyncAlt className={loading ? 'is-spinning' : ''} />
               </button>
-            </form>
+            </div>
           </div>
-        </div>
 
-        <div className="card">
-          <div className="card-header">Pacientes na lista de espera</div>
-
-          <div className="card-body table-responsive">
-            <table className="table table-striped table-hover align-middle">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Paciente</th>
-                  <th>Médico</th>
-                  <th>Especialidade</th>
-                  <th>Data desejada</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {lista.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" className="text-center">
-                      Nenhum paciente na lista de espera.
-                    </td>
-                  </tr>
-                ) : (
-                  lista.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.id}</td>
-
-                      <td>
-                        {item.paciente_nome || `Paciente #${item.paciente_id}`}
-                      </td>
-
-                      <td>{item.medico_nome || "Não informado"}</td>
-
-                      <td>{item.especialidade || "Não informada"}</td>
-
-                      <td>{formatarData(item.data_desejada)}</td>
-
-                      <td>
-                        <span className="badge bg-secondary">
-                          {item.status}
-                        </span>
-                      </td>
-
-                      <td>
-                        <button
-                          className="btn btn-sm btn-warning me-2"
-                          onClick={() => alterarStatus(item.id, "chamar")}
-                          disabled={item.status !== "ATIVO"}
-                        >
-                          Chamar
-                        </button>
-
-                        <button
-                          className="btn btn-sm btn-success me-2"
-                          onClick={() => alterarStatus(item.id, "encerrar")}
-                          disabled={
-                            item.status === "ENCERRADO" ||
-                            item.status === "CANCELADO"
-                          }
-                        >
-                          Encerrar
-                        </button>
-
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() => alterarStatus(item.id, "cancelar")}
-                          disabled={
-                            item.status === "CANCELADO" ||
-                            item.status === "ENCERRADO"
-                          }
-                        >
-                          Cancelar
-                        </button>
-                      </td>
+          {loading ? (
+            <div className="waiting-loading">
+              <div className="waiting-loading__icon">
+                <Spinner animation="border" />
+              </div>
+              <strong>Organizando a fila</strong>
+              <p>Estamos carregando os pacientes e as disponibilidades.</p>
+            </div>
+          ) : listaFiltrada.length > 0 ? (
+            <>
+              <div className="waiting-table-wrap">
+                <table className="waiting-table">
+                  <thead>
+                    <tr>
+                      <th>Posição</th>
+                      <th>Paciente</th>
+                      <th>Preferência médica</th>
+                      <th>Data desejada</th>
+                      <th>Entrada na fila</th>
+                      <th>Status</th>
+                      <th>Ações</th>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                  </thead>
+                  <tbody>
+                    {listaFiltrada.map((item) => (
+                      <tr key={item.id}>
+                        <td>
+                          {item.status === 'ATIVO' ? (
+                            <span className="waiting-position">
+                              {String(posicoesAtivas.get(item.id)).padStart(2, '0')}
+                            </span>
+                          ) : (
+                            <span className="waiting-position is-inactive">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <div className="waiting-person">
+                            <span className="waiting-avatar">
+                              {obterIniciais(item.paciente_nome)}
+                            </span>
+                            <span>
+                              <strong>
+                                {item.paciente_nome || `Paciente #${item.paciente_id}`}
+                              </strong>
+                              <small>Registro #{item.id}</small>
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="waiting-doctor">
+                            <strong>{item.medico_nome || 'Sem médico definido'}</strong>
+                            <span>
+                              {item.especialidade || 'Especialidade não informada'}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="waiting-date">
+                            <FaCalendarAlt />
+                            {formatarData(item.data_desejada)}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="waiting-entry">
+                            <FaClock />
+                            {formatarEntrada(item.created_at)}
+                          </div>
+                        </td>
+                        <td>{renderStatus(item.status)}</td>
+                        <td>{renderAcoes(item)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="waiting-mobile-list">
+                {listaFiltrada.map((item) => (
+                  <article key={item.id} className="waiting-mobile-card">
+                    <div className="waiting-mobile-card__header">
+                      <div className="waiting-person">
+                        <span className="waiting-avatar">
+                          {obterIniciais(item.paciente_nome)}
+                        </span>
+                        <span>
+                          <strong>
+                            {item.paciente_nome || `Paciente #${item.paciente_id}`}
+                          </strong>
+                          <small>Registro #{item.id}</small>
+                        </span>
+                      </div>
+                      {item.status === 'ATIVO' && (
+                        <span className="waiting-mobile-card__position">
+                          #{posicoesAtivas.get(item.id)} na fila
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="waiting-mobile-card__status">
+                      {renderStatus(item.status)}
+                    </div>
+
+                    <div className="waiting-mobile-card__details">
+                      <div>
+                        <span>Médico</span>
+                        <strong>{item.medico_nome || 'Não informado'}</strong>
+                      </div>
+                      <div>
+                        <span>Especialidade</span>
+                        <strong>{item.especialidade || 'Não informada'}</strong>
+                      </div>
+                      <div>
+                        <span>Data desejada</span>
+                        <strong>{formatarData(item.data_desejada)}</strong>
+                      </div>
+                      <div>
+                        <span>Entrada</span>
+                        <strong>{formatarEntrada(item.created_at)}</strong>
+                      </div>
+                    </div>
+
+                    {renderAcoes(item)}
+                  </article>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="waiting-empty">
+              {busca || statusFiltro ? <FaSearch /> : <FaUserClock />}
+              <h3>
+                {busca || statusFiltro
+                  ? 'Nenhum paciente encontrado'
+                  : 'A lista de espera está vazia'}
+              </h3>
+              <p>
+                {busca || statusFiltro
+                  ? 'Ajuste os filtros para visualizar outros registros.'
+                  : 'Adicione um paciente quando houver demanda por uma nova disponibilidade.'}
+              </p>
+              {busca || statusFiltro ? (
+                <Button
+                  variant="light"
+                  onClick={() => {
+                    setBusca('')
+                    setStatusFiltro('')
+                  }}
+                >
+                  Limpar filtros
+                </Button>
+              ) : (
+                <Button className="waiting-empty__button" onClick={abrirModal}>
+                  <FaPlus />
+                  Adicionar paciente
+                </Button>
+              )}
+            </div>
+          )}
+        </section>
       </div>
+
+      <Modal
+        show={mostrarModal}
+        onHide={fecharModal}
+        centered
+        size="lg"
+        dialogClassName="waiting-modal"
+      >
+        <Form onSubmit={cadastrarNaLista}>
+          <Modal.Header closeButton={!salvando}>
+            <div className="waiting-modal__heading">
+              <span>
+                <FaUserClock />
+              </span>
+              <div>
+                <small>Nova solicitação</small>
+                <Modal.Title>Adicionar à lista de espera</Modal.Title>
+                <p>Informe as preferências do paciente para a próxima vaga.</p>
+              </div>
+            </div>
+          </Modal.Header>
+
+          <Modal.Body>
+            {erroModal && (
+              <Alert variant="danger" className="waiting-modal__alert">
+                {erroModal}
+              </Alert>
+            )}
+
+            <div className="waiting-modal__section-title">
+              <FaUserInjured />
+              Paciente
+            </div>
+
+            <Form.Group className="waiting-modal__field">
+              <Form.Label>
+                Selecione o paciente <span>*</span>
+              </Form.Label>
+              <Form.Select
+                name="paciente_id"
+                value={formData.paciente_id}
+                onChange={handleFormChange}
+                required
+              >
+                <option value="">Selecione um paciente</option>
+                {pacientes.map((paciente) => (
+                  <option key={paciente.id} value={paciente.id}>
+                    {nomePaciente(paciente)}
+                  </option>
+                ))}
+              </Form.Select>
+              {pacientes.length === 0 && (
+                <Form.Text>Nenhum paciente disponível para seleção.</Form.Text>
+              )}
+            </Form.Group>
+
+            <div className="waiting-modal__section-title">
+              <FaStethoscope />
+              Preferência de atendimento
+            </div>
+
+            <div className="waiting-modal__grid">
+              <Form.Group className="waiting-modal__field">
+                <Form.Label>Médico</Form.Label>
+                <Form.Select
+                  name="medico_id"
+                  value={formData.medico_id}
+                  onChange={selecionarMedico}
+                >
+                  <option value="">Sem preferência de médico</option>
+                  {medicos.map((medico) => (
+                    <option key={medico.id} value={medico.id}>
+                      {nomeMedico(medico)}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+
+              <Form.Group className="waiting-modal__field">
+                <Form.Label>Especialidade</Form.Label>
+                <div className="waiting-modal__readonly">
+                  <FaUserMd />
+                  <Form.Control
+                    type="text"
+                    name="especialidade"
+                    value={formData.especialidade}
+                    readOnly
+                    placeholder="Preenchida pelo médico"
+                  />
+                </div>
+              </Form.Group>
+
+              <Form.Group className="waiting-modal__field waiting-modal__field--full">
+                <Form.Label>Data desejada</Form.Label>
+                <div className="waiting-modal__date">
+                  <FaCalendarAlt />
+                  <Form.Control
+                    type="date"
+                    name="data_desejada"
+                    value={formData.data_desejada}
+                    onChange={handleFormChange}
+                  />
+                </div>
+                <Form.Text>
+                  Campo opcional. A data ajuda a organizar a preferência do paciente.
+                </Form.Text>
+              </Form.Group>
+            </div>
+          </Modal.Body>
+
+          <Modal.Footer>
+            <Button
+              type="button"
+              variant="light"
+              onClick={fecharModal}
+              disabled={salvando}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="waiting-modal__submit" disabled={salvando}>
+              {salvando ? (
+                <>
+                  <Spinner animation="border" size="sm" />
+                  Adicionando
+                </>
+              ) : (
+                <>
+                  <FaPlus />
+                  Adicionar à fila
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
     </MainLayout>
-  );
+  )
 }
 
-export default ListaEspera;
+export default ListaEspera

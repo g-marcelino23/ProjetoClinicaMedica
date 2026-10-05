@@ -1,0 +1,87 @@
+.clinical-shell {
+  --clinical-sidebar-width: 278px;
+  min-height: 100vh;
+  background: #f4f7fb;
+}
+
+.clinical-shell.is-sidebar-collapsed {
+  --clinical-sidebar-width: 88px;
+}
+
+.clinical-main {
+  min-width: 0;
+  min-height: 100vh;
+  margin-left: var(--clinical-sidebar-width);
+  transition: margin-left 220ms ease;
+}
+
+.clinical-main__content {
+  width: 100%;
+  padding: 24px;
+}
+
+.clinical-mobile-header {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .clinical-shell,
+  .clinical-shell.is-sidebar-collapsed {
+    --clinical-sidebar-width: 0px;
+  }
+
+  .clinical-mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    height: 64px;
+    padding: 0 18px;
+    color: #17324d;
+    background: rgb(255 255 255 / 94%);
+    border-bottom: 1px solid #e4eaf1;
+    box-shadow: 0 8px 22px rgb(15 45 70 / 6%);
+    backdrop-filter: blur(14px);
+  }
+
+  .clinical-mobile-header__menu {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    color: #246b66;
+    background: #edf8f6;
+    border: 0;
+    border-radius: 12px;
+    place-items: center;
+  }
+
+  .clinical-mobile-header__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+  }
+
+  .clinical-mobile-header__brand svg {
+    color: #1aa698;
+  }
+
+  .clinical-main {
+    margin-left: 0;
+  }
+
+  .clinical-main__content {
+    padding: 18px 17px 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .clinical-main__content {
+    padding: 14px 13px 22px;
+  }
+}

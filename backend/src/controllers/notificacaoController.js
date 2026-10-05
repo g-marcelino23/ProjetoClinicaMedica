@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const criarNotificacao = async (req, res) => {
+const criarNotificacao = async (req, res, next) => {
     try {
         const { usuario_id, titulo, mensagem, tipo } = req.body;
 
@@ -31,11 +31,11 @@ const criarNotificacao = async (req, res) => {
             notificacao: result.rows[0]
         });
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const listarMinhasNotificacoes = async (req, res) => {
+const listarMinhasNotificacoes = async (req, res, next) => {
     try {
         const usuarioId = req.usuario.id;
 
@@ -49,18 +49,18 @@ const listarMinhasNotificacoes = async (req, res) => {
 
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const marcarComoLida = async (req, res) => {
+const marcarComoLida = async (req, res, next) => {
     try {
         const usuarioId = req.usuario.id;
         const { id } = req.params;
 
         const notificacaoExiste = await pool.query(
-            'SELECT * FROM notificacoes WHERE id = $1',
-            [id]
+            'SELECT * FROM notificacoes WHERE id = $1 AND usuario_id = $2',
+            [id, usuarioId]
         );
 
         if (notificacaoExiste.rows.length === 0) {
@@ -78,9 +78,9 @@ const marcarComoLida = async (req, res) => {
         const result = await pool.query(
             `UPDATE notificacoes
        SET lida = true
-       WHERE id = $1
+       WHERE id = $1 AND usuario_id = $2
        RETURNING *`,
-            [id]
+            [id, usuarioId]
         );
 
         res.json({
@@ -88,7 +88,7 @@ const marcarComoLida = async (req, res) => {
             notificacao: result.rows[0]
         });
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 

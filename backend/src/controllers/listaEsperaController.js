@@ -1,6 +1,12 @@
 const pool = require('../config/db');
+const {
+    rollbackTransaction,
+} = require('../services/transactionService');
+const {
+    canTransitionWaitingList
+} = require('../domain/workflowPolicy');
 
-const criarEntradaListaEspera = async (req, res) => {
+const criarEntradaListaEspera = async (req, res, next) => {
     try {
         const {
             paciente_id,
@@ -26,6 +32,28 @@ const criarEntradaListaEspera = async (req, res) => {
             });
         }
 
+        if (medico_id) {
+            const medicoExiste = await pool.query(
+                'SELECT id, especialidade FROM medicos WHERE id = $1',
+                [medico_id]
+            );
+
+            if (medicoExiste.rows.length === 0) {
+                return res.status(404).json({
+                    erro: 'Médico não encontrado'
+                });
+            }
+
+            if (
+                especialidade &&
+                medicoExiste.rows[0].especialidade !== especialidade
+            ) {
+                return res.status(409).json({
+                    erro: 'A especialidade informada não corresponde ao médico'
+                });
+            }
+        }
+
         const result = await pool.query(
             `INSERT INTO lista_espera
             (paciente_id, medico_id, especialidade, data_desejada, status)
@@ -44,13 +72,17 @@ const criarEntradaListaEspera = async (req, res) => {
             item: result.rows[0]
         });
     } catch (error) {
-        res.status(500).json({
-            erro: error.message
-        });
+        if (error.code === '23505') {
+            return res.status(409).json({
+                erro: 'Paciente já possui entrada ativa equivalente na fila'
+            });
+        }
+
+        next(error);
     }
 };
 
-const listarListaEspera = async (req, res) => {
+const listarListaEspera = async (req, res, next) => {
     try {
         const perfil = req.usuario?.perfil;
         const usuarioId = req.usuario?.id;
@@ -113,13 +145,11 @@ const listarListaEspera = async (req, res) => {
 
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({
-            erro: error.message
-        });
+        next(error);
     }
 };
 
-const buscarItemListaEsperaPorId = async (req, res) => {
+const buscarItemListaEsperaPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
 
@@ -150,22 +180,30 @@ const buscarItemListaEsperaPorId = async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({
-            erro: error.message
-        });
+        next(error);
     }
 };
 
-const chamarProximoDaFila = async (req, res) => {
+const transitionWaitingList = async (
+    req,
+    res,
+    next,
+    nextStatus,
+    successMessage
+) => {
+    const client = await pool.connect();
+
     try {
+        await client.query('BEGIN');
         const { id } = req.params;
 
-        const itemExiste = await pool.query(
-            'SELECT * FROM lista_espera WHERE id = $1',
+        const itemExiste = await client.query(
+            'SELECT * FROM lista_espera WHERE id = $1 FOR UPDATE',
             [id]
         );
 
         if (itemExiste.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({
                 erro: 'Item da lista de espera não encontrado'
             });
@@ -173,98 +211,59 @@ const chamarProximoDaFila = async (req, res) => {
 
         const item = itemExiste.rows[0];
 
-        if (item.status !== 'ATIVO') {
-            return res.status(400).json({
-                erro: 'Apenas itens com status ATIVO podem ser chamados'
+        if (!canTransitionWaitingList(item.status, nextStatus)) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+                erro: `Transição de ${item.status} para ${nextStatus} não permitida`
             });
         }
 
-        const result = await pool.query(
+        const result = await client.query(
             `UPDATE lista_espera
-             SET status = 'CHAMADO'
-             WHERE id = $1
+             SET status = $1
+             WHERE id = $2
              RETURNING *`,
-            [id]
+            [nextStatus, id]
         );
 
+        await client.query('COMMIT');
         res.json({
-            mensagem: 'Paciente chamado com sucesso',
+            mensagem: successMessage,
             item: result.rows[0]
         });
     } catch (error) {
-        res.status(500).json({
-            erro: error.message
-        });
+        next(await rollbackTransaction(client, error));
+    } finally {
+        client.release();
     }
 };
 
-const encerrarItemListaEspera = async (req, res) => {
-    try {
-        const { id } = req.params;
+const chamarProximoDaFila = (req, res, next) =>
+    transitionWaitingList(
+        req,
+        res,
+        next,
+        'CHAMADO',
+        'Paciente chamado com sucesso'
+    );
 
-        const itemExiste = await pool.query(
-            'SELECT * FROM lista_espera WHERE id = $1',
-            [id]
-        );
+const encerrarItemListaEspera = (req, res, next) =>
+    transitionWaitingList(
+        req,
+        res,
+        next,
+        'ENCERRADO',
+        'Item da lista de espera encerrado com sucesso'
+    );
 
-        if (itemExiste.rows.length === 0) {
-            return res.status(404).json({
-                erro: 'Item da lista de espera não encontrado'
-            });
-        }
-
-        const result = await pool.query(
-            `UPDATE lista_espera
-             SET status = 'ENCERRADO'
-             WHERE id = $1
-             RETURNING *`,
-            [id]
-        );
-
-        res.json({
-            mensagem: 'Item da lista de espera encerrado com sucesso',
-            item: result.rows[0]
-        });
-    } catch (error) {
-        res.status(500).json({
-            erro: error.message
-        });
-    }
-};
-
-const cancelarItemListaEspera = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const itemExiste = await pool.query(
-            'SELECT * FROM lista_espera WHERE id = $1',
-            [id]
-        );
-
-        if (itemExiste.rows.length === 0) {
-            return res.status(404).json({
-                erro: 'Item da lista de espera não encontrado'
-            });
-        }
-
-        const result = await pool.query(
-            `UPDATE lista_espera
-             SET status = 'CANCELADO'
-             WHERE id = $1
-             RETURNING *`,
-            [id]
-        );
-
-        res.json({
-            mensagem: 'Item da lista de espera cancelado com sucesso',
-            item: result.rows[0]
-        });
-    } catch (error) {
-        res.status(500).json({
-            erro: error.message
-        });
-    }
-};
+const cancelarItemListaEspera = (req, res, next) =>
+    transitionWaitingList(
+        req,
+        res,
+        next,
+        'CANCELADO',
+        'Item da lista de espera cancelado com sucesso'
+    );
 
 module.exports = {
     criarEntradaListaEspera,

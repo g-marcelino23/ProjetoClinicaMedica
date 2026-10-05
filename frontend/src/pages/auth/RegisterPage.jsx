@@ -1,135 +1,51 @@
-import { useState } from 'react'
-import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap'
-import { useNavigate } from 'react-router-dom'
-import api from '../../services/api'
+import { Link } from 'react-router'
+import {
+  FaArrowLeft,
+  FaCalendarCheck,
+  FaFileMedical,
+  FaUserInjured,
+  FaUserMd,
+  FaUserPlus,
+  FaUserTie
+} from 'react-icons/fa'
+import AuthShell from '../../components/auth/AuthShell'
 
 function RegisterPage() {
-  const navigate = useNavigate()
-
-  const [nome, setNome] = useState('')
-  const [email, setEmail] = useState('')
-  const [senha, setSenha] = useState('')
-  const [perfil, setPerfil] = useState('PACIENTE')
-
-  const [erro, setErro] = useState('')
-  const [sucesso, setSucesso] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setErro('')
-    setSucesso('')
-    setLoading(true)
-
-    try {
-      await api.post('/auth/register', {
-        nome,
-        email,
-        senha,
-        perfil,
-      })
-
-      setSucesso('Usuário cadastrado com sucesso!')
-
-      setTimeout(() => {
-        navigate('/login')
-      }, 1500)
-    } catch (error) {
-      console.error(error)
-
-      const mensagem =
-        error.response?.data?.erro ||
-        error.response?.data?.message ||
-        'Erro ao cadastrar usuário'
-
-      setErro(mensagem)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <Container className="d-flex justify-content-center align-items-center vh-100">
-      <Row className="w-100 justify-content-center">
-        <Col md={6} lg={4}>
-          <Card className="shadow border-0 rounded-4">
-            <Card.Body className="p-4">
-              <h2 className="text-center mb-4 fw-bold">Cadastro</h2>
+    <AuthShell
+      tone="blue"
+      eyebrow="Comece agora"
+      title="Uma experiência feita para cada perfil."
+      description="Escolha como você utilizará o Clinical Med para acessar o formulário de cadastro correto."
+      features={[
+        { icon: FaCalendarCheck, title: 'Fluxos personalizados', text: 'Campos e recursos adequados para cada perfil.' },
+        { icon: FaFileMedical, title: 'Dados centralizados', text: 'Sua jornada começa com um cadastro completo.' }
+      ]}
+      panelClassName="auth-panel--chooser"
+    >
+      <Link to="/login" className="auth-back-link"><FaArrowLeft />Voltar para o login</Link>
+      <header className="auth-form-header">
+        <span className="auth-form-header__icon"><FaUserPlus /></span>
+        <span className="auth-form-header__eyebrow">Criar uma conta</span>
+        <h2>Escolha seu perfil</h2>
+        <p>Cada perfil possui informações e recursos específicos no sistema.</p>
+      </header>
 
-              {erro && <Alert variant="danger">{erro}</Alert>}
-              {sucesso && <Alert variant="success">{sucesso}</Alert>}
-
-              <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Nome</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    placeholder="Digite seu nome"
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>E-mail</Form.Label>
-                  <Form.Control
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Digite seu e-mail"
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Senha</Form.Label>
-                  <Form.Control
-                    type="password"
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                    placeholder="Digite sua senha"
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Perfil</Form.Label>
-                  <Form.Select
-                    value={perfil}
-                    onChange={(e) => setPerfil(e.target.value)}
-                  >
-                    <option value="PACIENTE">Paciente</option>
-                    <option value="MEDICO">Médico</option>
-                    <option value="SECRETARIO">Secretário</option>
-                  </Form.Select>
-                </Form.Group>
-
-                <Button type="submit" className="w-100" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Spinner size="sm" className="me-2" />
-                      Cadastrando...
-                    </>
-                  ) : (
-                    'Cadastrar'
-                  )}
-                </Button>
-              </Form>
-
-              <div className="text-center mt-3">
-                <small>
-                  Já tem conta?{' '}
-                  <span
-                    style={{ cursor: 'pointer', color: '#0d6efd' }}
-                    onClick={() => navigate('/login')}
-                  >
-                    Entrar
-                  </span>
-                </small>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+      <div className="auth-chooser-grid">
+        <Link to="/cadastro/paciente" className="auth-chooser-card">
+          <span><FaUserInjured /></span>
+          <span><strong>Sou paciente</strong><small>Acompanhe consultas, exames e seu histórico.</small></span>
+        </Link>
+        <Link to="/cadastro/medico" className="auth-chooser-card auth-chooser-card--doctor">
+          <span><FaUserMd /></span>
+          <span><strong>Sou médico</strong><small>Gerencie atendimentos e registros clínicos.</small></span>
+        </Link>
+        <Link to="/cadastro/secretario" className="auth-chooser-card auth-chooser-card--secretary">
+          <span><FaUserTie /></span>
+          <span><strong>Sou secretário</strong><small>Organize cadastros, agendas e a operação.</small></span>
+        </Link>
+      </div>
+    </AuthShell>
   )
 }
 

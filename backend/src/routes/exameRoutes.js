@@ -1,43 +1,41 @@
-const express = require('express');
-const router = express.Router();
+const express = require('express')
+const router = express.Router()
+const exameController = require('../controllers/exameController')
+const authMiddleware = require('../middlewares/authMiddleware')
+const roleMiddleware = require('../middlewares/roleMiddleware')
+const validate = require('../middlewares/validate')
+const schemas = require('../validation/schemas')
 
-const exameController = require('../controllers/exameController');
-const authMiddleware = require('../middlewares/authMiddleware');
-const roleMiddleware = require('../middlewares/roleMiddleware');
+router.use(authMiddleware)
 
 router.post(
   '/',
-  authMiddleware,
-  roleMiddleware(['MEDICO', 'SECRETARIO']),
+  roleMiddleware(['MEDICO']),
+  validate(schemas.exams.create),
   exameController.criarExame
-);
-
+)
 router.get(
   '/',
-  authMiddleware,
   roleMiddleware(['MEDICO', 'SECRETARIO', 'PACIENTE']),
   exameController.listarExames
-);
-
+)
 router.get(
   '/:id',
-  authMiddleware,
   roleMiddleware(['MEDICO', 'SECRETARIO', 'PACIENTE']),
+  validate(schemas.exams.id),
   exameController.buscarExamePorId
-);
-
+)
 router.put(
   '/:id',
-  authMiddleware,
-  roleMiddleware(['MEDICO', 'SECRETARIO']),
+  roleMiddleware(['MEDICO']),
+  validate(schemas.exams.update),
   exameController.atualizarExame
-);
-
+)
 router.delete(
   '/:id',
-  authMiddleware,
   roleMiddleware(['SECRETARIO']),
+  validate(schemas.exams.id),
   exameController.deletarExame
-);
+)
 
-module.exports = router;
+module.exports = router

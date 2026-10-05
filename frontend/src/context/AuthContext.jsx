@@ -1,37 +1,35 @@
 import { createContext, useContext, useEffect, useState } from 'react'
-import api from '../services/api'
+import api, { setUnauthorizedHandler } from '../services/api'
 
 const AuthContext = createContext()
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [initialized, setInitialized] = useState(false)
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user')
-    const storedToken = localStorage.getItem('token')
-
-    if (storedUser && storedToken) {
-      try {
-        const parsedUser = JSON.parse(storedUser)
-
-        setUser({
-          ...parsedUser,
-          paciente_id: parsedUser?.paciente_id || null,
-          medico_id: parsedUser?.medico_id || null
-        })
-      } catch (error) {
-        localStorage.removeItem('user')
-        localStorage.removeItem('token')
-        setUser(null)
-      }
-    } else {
-      localStorage.removeItem('user')
-      localStorage.removeItem('token')
+    let active = true
+    const markAnonymous = () => {
+      if (!active) return
       setUser(null)
+      setInitialized(true)
     }
+    const removeUnauthorizedHandler = setUnauthorizedHandler(markAnonymous)
 
-    setLoading(false)
+    api
+      .get('/auth/me')
+      .then((response) => {
+        if (active) setUser(response.data.usuario)
+      })
+      .catch(markAnonymous)
+      .finally(() => {
+        if (active) setInitialized(true)
+      })
+
+    return () => {
+      active = false
+      removeUnauthorizedHandler()
+    }
   }, [])
 
   const login = async (email, senha) => {
@@ -43,61 +41,91 @@ export function AuthProvider({ children }) {
         }
       }
 
-      const response = await api.post('/auth/login', {
-        email,
-        senha,
-      })
+      const response = await api.post('/auth/login', { email, senha })
+      if (
+        response.data.mfa_required ||
+        response.data.mfa_enrollment_required
+      ) {
+        return {
+          success: false,
+          requiresMfa: true,
+          enrollmentRequired:
+            Boolean(response.data.mfa_enrollment_required),
+          challengeId: response.data.challenge_id,
+          secret: response.data.secret || null,
+          otpAuthUri: response.data.otpauth_uri || null,
+          message: response.data.mensagem,
+        }
+      }
+      const usuario = response.data.usuario
 
-      const data = response.data
-      const token = data.token
-      const usuario = data.usuario || data.user
-
-      if (!token || !usuario) {
+      if (!usuario) {
         return {
           success: false,
           message: 'Resposta inválida do servidor',
         }
       }
 
-      const usuarioFormatado = {
-        ...usuario,
-        paciente_id: usuario?.paciente_id || null,
-        medico_id: usuario?.medico_id || null
-      }
-
-      localStorage.setItem('token', token)
-      localStorage.setItem('user', JSON.stringify(usuarioFormatado))
-      setUser(usuarioFormatado)
-
+      setUser(usuario)
+      setInitialized(true)
       return { success: true }
     } catch (error) {
-      console.error('Erro no login:', error)
-
-      const mensagem =
-        error.response?.data?.erro ||
-        error.response?.data?.message ||
-        'E-mail ou senha inválidos'
-
       return {
         success: false,
-        message: mensagem,
+        message:
+          error.response?.data?.erro ||
+          'E-mail ou senha inválidos',
       }
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('user')
-    localStorage.removeItem('token')
-    setUser(null)
+  const verifyMfa = async (challengeId, codigo) => {
+    try {
+      const response = await api.post('/auth/mfa/verify', {
+        challenge_id: challengeId,
+        codigo,
+      })
+      const usuario = response.data.usuario
+      if (!usuario) {
+        return {
+          success: false,
+          message: 'Resposta inválida do servidor',
+        }
+      }
+      setUser(usuario)
+      setInitialized(true)
+      return {
+        success: true,
+        recoveryCodes: response.data.recovery_codes || null,
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message:
+          error.response?.data?.erro ||
+          'Código de autenticação inválido',
+      }
+    }
+  }
+
+  const logout = async () => {
+    try {
+      await api.post('/auth/logout')
+    } finally {
+      setUser(null)
+      setInitialized(true)
+    }
   }
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        authenticated: !!user,
-        loading,
+        authenticated: initialized && Boolean(user),
+        initialized,
+        loading: !initialized,
         login,
+        verifyMfa,
         logout,
         perfil: user?.perfil || null,
         isPaciente: user?.perfil === 'PACIENTE',
@@ -110,6 +138,7 @@ export function AuthProvider({ children }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   return useContext(AuthContext)
 }

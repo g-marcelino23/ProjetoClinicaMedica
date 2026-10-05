@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const buscarMeuPerfilPaciente = async (req, res) => {
+const buscarMeuPerfilPaciente = async (req, res, next) => {
     try {
         const usuarioId = req.usuario.id;
 
@@ -28,11 +28,11 @@ const buscarMeuPerfilPaciente = async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const listarMinhasConsultas = async (req, res) => {
+const listarMinhasConsultas = async (req, res, next) => {
     try {
         const usuarioId = req.usuario.id;
 
@@ -68,11 +68,11 @@ const listarMinhasConsultas = async (req, res) => {
 
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const listarMeusExames = async (req, res) => {
+const listarMeusExames = async (req, res, next) => {
     try {
         const usuarioId = req.usuario.id;
 
@@ -107,11 +107,11 @@ const listarMeusExames = async (req, res) => {
 
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const listarMinhasPrescricoes = async (req, res) => {
+const listarMinhasPrescricoes = async (req, res, next) => {
     try {
         const usuarioId = req.usuario.id;
 
@@ -130,21 +130,24 @@ const listarMinhasPrescricoes = async (req, res) => {
             `SELECT
          pr.id,
          pr.consulta_id,
-         pr.descricao,
-         pr.orientacoes,
-         pr.created_at,
+         pr.medicamento,
+         pr.dosagem,
+         pr.frequencia,
+         pr.duracao,
+         pr.observacoes,
+         pr.data_prescricao,
          u.nome AS medico_nome
        FROM prescricoes pr
        JOIN medicos m ON m.id = pr.medico_id
        JOIN usuarios u ON u.id = m.usuario_id
        WHERE pr.paciente_id = $1
-       ORDER BY pr.created_at DESC`,
+       ORDER BY pr.data_prescricao DESC`,
             [pacienteId]
         );
 
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 

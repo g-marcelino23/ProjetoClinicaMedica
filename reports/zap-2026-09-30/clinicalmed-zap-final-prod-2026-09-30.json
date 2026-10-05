@@ -1,0 +1,463 @@
+{
+	"@programName": "ZAP",
+	"@version": "2.17.0",
+	"@generated": "qua., 30 set. 2026 15:21:20",
+	"created": "2026-09-30T18:21:20.169159100Z",
+	"insights":[
+		{
+			"level": "Baixo",
+			"reason": "Atenção",
+			"site": "",
+			"key": "insight.log.warn",
+			"description": "ZAP warnings logged - see the zap.log file for details",
+			"statistic": "75"
+		},
+		{
+			"level": "Baixo",
+			"reason": "Exceeded High",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "99"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.DELETE",
+			"description": "Percentage of endpoints with method DELETE",
+			"statistic": "9"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "47"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.PATCH",
+			"description": "Percentage of endpoints with method PATCH",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "22"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.PUT",
+			"description": "Percentage of endpoints with method PUT",
+			"statistic": "19"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "63"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "3"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:4173",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:4173",
+			"key": "insight.endpoint.ctype.image/svg+xml",
+			"description": "Percentage of endpoints with content type image/svg+xml",
+			"statistic": "20"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:4173",
+			"key": "insight.endpoint.ctype.text/css",
+			"description": "Percentage of endpoints with content type text/css",
+			"statistic": "20"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:4173",
+			"key": "insight.endpoint.ctype.text/html",
+			"description": "Percentage of endpoints with content type text/html",
+			"statistic": "40"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:4173",
+			"key": "insight.endpoint.ctype.text/javascript",
+			"description": "Percentage of endpoints with content type text/javascript",
+			"statistic": "20"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:4173",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:4173",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "5"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.code.1xx",
+			"description": "Percentage of responses with status code 1xx",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "96"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "2"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "2"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.ctype.image/svg+xml",
+			"description": "Percentage of endpoints with content type image/svg+xml",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.ctype.text/html",
+			"description": "Percentage of endpoints with content type text/html",
+			"statistic": "26"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.ctype.text/javascript",
+			"description": "Percentage of endpoints with content type text/javascript",
+			"statistic": "67"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "109"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "32"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.endpoint.ctype.application/x-protobuf",
+			"description": "Percentage of endpoints with content type application/x-protobuf",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.endpoint.ctype.text/plain",
+			"description": "Percentage of endpoints with content type text/plain",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.endpoint.ctype.text/plain",
+			"description": "Percentage of endpoints with content type text/plain",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "7"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "100"
+		}
+	],
+	"site":[ 
+		{
+			"@name": "http://127.0.0.1:4173",
+			"@host": "127.0.0.1",
+			"@port": "4173",
+			"@ssl": "false",
+			"alerts": [ 
+				{
+					"pluginid": "10109",
+					"alertRef": "10109",
+					"alert": "Modern Web Application",
+					"name": "Modern Web Application",
+					"riskcode": "0",
+					"confidence": "2",
+					"riskdesc": "Informativo (M\u00E9dio)",
+					"desc": "<p>The application appears to be a modern web application. If you need to explore it automatically then the Client Spider may well be more effective than the standard one.</p>",
+					"instances":[ 
+						{
+							"id": "177",
+							"uri": "http://127.0.0.1:4173",
+							"nodeName": "http:\/\/127.0.0.1:4173",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "<script type=\"module\" crossorigin src=\"/assets/index-C1Tq7AMD.js\"></script>",
+							"otherinfo": "No links have been found while there are scripts, which is an indication that this is a modern web application."
+						},
+						{
+							"id": "176",
+							"uri": "http://127.0.0.1:4173/robots.txt",
+							"nodeName": "http:\/\/127.0.0.1:4173\/robots.txt",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "<script type=\"module\" crossorigin src=\"/assets/index-C1Tq7AMD.js\"></script>",
+							"otherinfo": "No links have been found while there are scripts, which is an indication that this is a modern web application."
+						},
+						{
+							"id": "178",
+							"uri": "http://127.0.0.1:4173/sitemap.xml",
+							"nodeName": "http:\/\/127.0.0.1:4173\/sitemap.xml",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "<script type=\"module\" crossorigin src=\"/assets/index-C1Tq7AMD.js\"></script>",
+							"otherinfo": "No links have been found while there are scripts, which is an indication that this is a modern web application."
+						}
+					],
+					"count": "3",
+					"systemic": true,
+					"solution": "<p>This is an informational alert and so no changes are required.</p>",
+					"otherinfo": "<p>No links have been found while there are scripts, which is an indication that this is a modern web application.</p>",
+					"reference": "",
+					"cweid": "-1",
+					"wascid": "-1",
+					"sourceid": "42560"
+				}
+			]
+		},
+		{
+			"@name": "http://127.0.0.1:3001",
+			"@host": "127.0.0.1",
+			"@port": "3001",
+			"@ssl": "false",
+			"alerts": [ 
+			]
+		}
+	],
+	"sequences":[
+	]
+
+}

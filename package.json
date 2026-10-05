@@ -1,6 +1,20 @@
 {
-  "dependencies": {
-    "html2canvas": "^1.4.1",
-    "jspdf": "^4.2.1"
+  "name": "clinicalmed",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@11.9.0",
+  "engines": {
+    "node": ">=24.14.0 <25",
+    "npm": ">=11 <12"
+  },
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "check": "npm --prefix backend run check && npm --prefix backend test && npm --prefix frontend test && npm --prefix frontend run lint && npm --prefix frontend run build",
+    "audit": "npm --prefix backend audit --audit-level=low && npm --prefix frontend audit --audit-level=low",
+    "check:supply-chain": "node scripts/supply-chain-check.js",
+    "check:integrity": "npm --prefix backend run check:integrity",
+    "check:logging": "npm --prefix backend run check:logging",
+    "check:exceptions": "npm --prefix backend run check:exceptions"
   }
 }

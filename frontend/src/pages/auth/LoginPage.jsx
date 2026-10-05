@@ -1,44 +1,62 @@
 import { useState } from 'react'
+import { Alert, Button, Form, Spinner } from 'react-bootstrap'
+import { useNavigate } from 'react-router'
 import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Form,
-  Button,
-  Alert,
-  Spinner,
-  InputGroup
-} from 'react-bootstrap'
-import { useNavigate } from 'react-router-dom'
+  FaArrowRight,
+  FaCalendarCheck,
+  FaEnvelope,
+  FaEye,
+  FaEyeSlash,
+  FaFileMedical,
+  FaLock,
+  FaShieldAlt,
+  FaUserInjured,
+  FaUserMd,
+  FaUserTie
+} from 'react-icons/fa'
+import AuthShell from '../../components/auth/AuthShell'
 import { useAuth } from '../../context/AuthContext'
-import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa'
-import './LoginPage.css'
 
 function LoginPage() {
   const navigate = useNavigate()
-  const { login } = useAuth()
-
+  const { login, verifyMfa } = useAuth()
   const [email, setEmail] = useState('')
   const [senha, setSenha] = useState('')
   const [erro, setErro] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [mostrarSenha, setMostrarSenha] = useState(false)
+  const [codigoMfa, setCodigoMfa] = useState('')
+  const [mfa, setMfa] = useState(null)
+  const [recoveryCodes, setRecoveryCodes] = useState(null)
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (event) => {
+    event.preventDefault()
     setErro('')
     setSubmitting(true)
 
     try {
-      const result = await login(email, senha)
+      const result = mfa
+        ? await verifyMfa(mfa.challengeId, codigoMfa)
+        : await login(email, senha)
 
       if (result.success) {
-        navigate('/dashboard')
+        if (result.recoveryCodes) {
+          setRecoveryCodes(result.recoveryCodes)
+        } else {
+          navigate('/dashboard')
+        }
+      } else if (result.requiresMfa) {
+        setMfa({
+          challengeId: result.challengeId,
+          enrollmentRequired: result.enrollmentRequired,
+          secret: result.secret,
+          otpAuthUri: result.otpAuthUri,
+        })
+        setSenha('')
       } else {
         setErro(result.message || 'Erro ao fazer login.')
       }
-    } catch (error) {
+    } catch {
       setErro('Erro ao fazer login.')
     } finally {
       setSubmitting(false)
@@ -46,155 +64,164 @@ function LoginPage() {
   }
 
   return (
-    <div className="login-page">
-      <Container fluid className="login-container">
-        <Row>
-          <Col md={7} className="login-banner d-none d-md-flex">
-            <div className="login-banner-overlay"></div>
+    <AuthShell
+      tone="blue"
+      eyebrow="Cuidado conectado"
+      title="Toda a rotina clínica em um só lugar."
+      description="Uma plataforma completa para organizar atendimentos e aproximar pacientes, médicos e equipe administrativa."
+      features={[
+        {
+          icon: FaCalendarCheck,
+          title: 'Agenda integrada',
+          text: 'Consultas e disponibilidades sempre organizadas.'
+        },
+        {
+          icon: FaFileMedical,
+          title: 'Histórico centralizado',
+          text: 'Prontuários, exames e prescrições com acesso seguro.'
+        },
+        {
+          icon: FaShieldAlt,
+          title: 'Acesso por perfil',
+          text: 'Cada usuário visualiza somente o que precisa.'
+        }
+      ]}
+      panelClassName="auth-panel--login"
+    >
+      <header className="auth-form-header">
+        <span className="auth-form-header__icon">
+          <FaLock />
+        </span>
+        <span className="auth-form-header__eyebrow">Bem-vindo de volta</span>
+        <h2>Acesse sua conta</h2>
+        <p>Entre com seu e-mail e senha para continuar no Clinical Med.</p>
+      </header>
 
-            <div className="login-banner-content">
-              <span className="login-badge">Clinical Med</span>
+      {erro && <Alert variant="danger" className="auth-alert">{erro}</Alert>}
 
-              <h1>Sistema inteligente de gestão clínica</h1>
+      {recoveryCodes ? (
+        <>
+          <Alert variant="warning" className="auth-alert">
+            Guarde estes códigos em local seguro. Cada código pode ser usado
+            uma única vez se você perder acesso ao autenticador.
+          </Alert>
+          <pre className="auth-recovery-codes">
+            {recoveryCodes.join('\n')}
+          </pre>
+          <Button
+            type="button"
+            className="auth-submit"
+            onClick={() => navigate('/dashboard')}
+          >
+            Já guardei os códigos <FaArrowRight />
+          </Button>
+        </>
+      ) : (
+      <Form onSubmit={handleSubmit}>
+        {!mfa ? (
+          <>
+        <Form.Group className="auth-field">
+          <Form.Label>E-mail</Form.Label>
+          <div className="auth-input-wrap">
+            <FaEnvelope />
+            <Form.Control
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="seuemail@exemplo.com"
+              autoComplete="email"
+              maxLength={254}
+              autoFocus
+              required
+            />
+          </div>
+        </Form.Group>
 
-              <p>
-                Gerencie pacientes, consultas, exames e prontuários com
-                segurança, organização e eficiência em uma plataforma moderna.
-              </p>
-            </div>
-          </Col>
+        <Form.Group className="auth-field mt-3">
+          <Form.Label>Senha</Form.Label>
+          <div className="auth-input-wrap has-action">
+            <FaLock />
+            <Form.Control
+              type={mostrarSenha ? 'text' : 'password'}
+              value={senha}
+              onChange={(event) => setSenha(event.target.value)}
+              placeholder="Digite sua senha"
+              autoComplete="current-password"
+              maxLength={72}
+              required
+            />
+            <button
+              type="button"
+              className="auth-input-action"
+              onClick={() => setMostrarSenha((prev) => !prev)}
+              aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+            >
+              {mostrarSenha ? <FaEyeSlash /> : <FaEye />}
+            </button>
+          </div>
+        </Form.Group>
+          </>
+        ) : (
+          <>
+            {mfa.enrollmentRequired && (
+              <Alert variant="info" className="auth-alert">
+                Adicione uma nova conta no seu aplicativo autenticador usando
+                esta chave:
+                <br />
+                <strong>{mfa.secret}</strong>
+              </Alert>
+            )}
+            <Form.Group className="auth-field">
+              <Form.Label>
+                Código do autenticador ou código de recuperação
+              </Form.Label>
+              <div className="auth-input-wrap">
+                <FaShieldAlt />
+                <Form.Control
+                  type="text"
+                  value={codigoMfa}
+                  onChange={(event) =>
+                    setCodigoMfa(event.target.value.toUpperCase())
+                  }
+                  placeholder="000000"
+                  autoComplete="one-time-code"
+                  maxLength={14}
+                  autoFocus
+                  required
+                />
+              </div>
+            </Form.Group>
+          </>
+        )}
 
-          <Col md={5} xs={12} className="login-form-wrapper">
-            <div className="login-form-box">
-              <Card className="login-card shadow-lg">
-                <Card.Body>
-                  <div className="text-center mb-4">
-                    <h2 className="fw-bold login-title">Entrar</h2>
-                    <p className="text-muted mb-0">
-                      Acesse sua conta no Clinical Med
-                    </p>
-                  </div>
+        <Button type="submit" className="auth-submit" disabled={submitting}>
+          {submitting ? (
+            <><Spinner animation="border" size="sm" />Entrando</>
+          ) : (
+            <>{mfa ? 'Confirmar código' : 'Entrar no sistema'} <FaArrowRight /></>
+          )}
+        </Button>
+      </Form>
+      )}
 
-                  {erro && (
-                    <Alert variant="danger" className="mb-3">
-                      {erro}
-                    </Alert>
-                  )}
+      {!mfa && !recoveryCodes && (
+      <>
+      <div className="auth-divider">Ainda não possui uma conta?</div>
 
-                  <Form onSubmit={handleSubmit}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>E-mail</Form.Label>
-                      <InputGroup className="custom-input-group">
-                        <InputGroup.Text className="input-icon">
-                          <FaEnvelope />
-                        </InputGroup.Text>
-
-                        <Form.Control
-                          type="email"
-                          placeholder="Digite seu e-mail"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          className="login-input"
-                          autoFocus
-                        />
-                      </InputGroup>
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label>Senha</Form.Label>
-                      <InputGroup className="custom-input-group">
-                        <InputGroup.Text className="input-icon">
-                          <FaLock />
-                        </InputGroup.Text>
-
-                        <Form.Control
-                          type={mostrarSenha ? 'text' : 'password'}
-                          placeholder="Digite sua senha"
-                          value={senha}
-                          onChange={(e) => setSenha(e.target.value)}
-                          required
-                          className="login-input"
-                        />
-
-                        <Button
-                          variant="light"
-                          onClick={() => setMostrarSenha((prev) => !prev)}
-                          type="button"
-                          className="password-toggle-btn"
-                          aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
-                        >
-                          {mostrarSenha ? <FaEyeSlash /> : <FaEye />}
-                        </Button>
-                      </InputGroup>
-                    </Form.Group>
-
-                    <Button
-                      type="submit"
-                      className="login-btn"
-                      disabled={submitting}
-                    >
-                      {submitting ? (
-                        <>
-                          <Spinner animation="border" size="sm" className="me-2" />
-                          Entrando...
-                        </>
-                      ) : (
-                        'Entrar'
-                      )}
-                    </Button>
-                  </Form>
-
-                  <div className="register-section">
-                    <small className="text-muted d-block text-center mb-3">
-                      Não tem conta? Escolha seu perfil
-                    </small>
-
-                    <div className="profile-cards">
-                      <button
-                        type="button"
-                        className="profile-card paciente"
-                        onClick={() => navigate('/cadastro/paciente')}
-                      >
-                        <div className="profile-icon">👤</div>
-                        <div className="text-start">
-                          <h6>Paciente</h6>
-                          <p>Acesse e acompanhe suas consultas</p>
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="profile-card medico"
-                        onClick={() => navigate('/cadastro/medico')}
-                      >
-                        <div className="profile-icon">🩺</div>
-                        <div className="text-start">
-                          <h6>Médico</h6>
-                          <p>Gerencie atendimentos e exames</p>
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="profile-card secretario"
-                        onClick={() => navigate('/cadastro/secretario')}
-                      >
-                        <div className="profile-icon">🧾</div>
-                        <div className="text-start">
-                          <h6>Secretário</h6>
-                          <p>Controle cadastros e agendamentos</p>
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                </Card.Body>
-              </Card>
-            </div>
-          </Col>
-        </Row>
-      </Container>
-    </div>
+      <div className="auth-profile-grid">
+        <button type="button" className="auth-profile-card" onClick={() => navigate('/cadastro/paciente')}>
+          <span><FaUserInjured /></span><strong>Paciente</strong><small>Acompanhe sua saúde</small>
+        </button>
+        <button type="button" className="auth-profile-card auth-profile-card--doctor" onClick={() => navigate('/cadastro/medico')}>
+          <span><FaUserMd /></span><strong>Médico</strong><small>Gerencie atendimentos</small>
+        </button>
+        <button type="button" className="auth-profile-card auth-profile-card--secretary" onClick={() => navigate('/cadastro/secretario')}>
+          <span><FaUserTie /></span><strong>Secretário</strong><small>Organize a clínica</small>
+        </button>
+      </div>
+      </>
+      )}
+    </AuthShell>
   )
 }
 

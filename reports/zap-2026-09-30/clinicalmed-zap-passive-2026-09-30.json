@@ -1,0 +1,777 @@
+{
+	"@programName": "ZAP",
+	"@version": "2.17.0",
+	"@generated": "qua., 30 set. 2026 15:12:04",
+	"created": "2026-09-30T18:12:04.651620700Z",
+	"insights":[
+		{
+			"level": "Baixo",
+			"reason": "Atenção",
+			"site": "",
+			"key": "insight.log.warn",
+			"description": "ZAP warnings logged - see the zap.log file for details",
+			"statistic": "67"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "49"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "50"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.DELETE",
+			"description": "Percentage of endpoints with method DELETE",
+			"statistic": "9"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "47"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.PATCH",
+			"description": "Percentage of endpoints with method PATCH",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "22"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.method.PUT",
+			"description": "Percentage of endpoints with method PUT",
+			"statistic": "19"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "63"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://127.0.0.1:3001",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "5"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.code.1xx",
+			"description": "Percentage of responses with status code 1xx",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "96"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.code.4xx",
+			"description": "Percentage of responses with status code 4xx",
+			"statistic": "2"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "2"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.ctype.image/svg+xml",
+			"description": "Percentage of endpoints with content type image/svg+xml",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.ctype.text/html",
+			"description": "Percentage of endpoints with content type text/html",
+			"statistic": "26"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.ctype.text/javascript",
+			"description": "Percentage of endpoints with content type text/javascript",
+			"statistic": "67"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "109"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "http://localhost:5173",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "32"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.endpoint.ctype.application/x-protobuf",
+			"description": "Percentage of endpoints with content type application/x-protobuf",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://chromewebstore.googleapis.com",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.endpoint.ctype.text/plain",
+			"description": "Percentage of endpoints with content type text/plain",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://clientservices.googleapis.com",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.endpoint.ctype.text/plain",
+			"description": "Percentage of endpoints with content type text/plain",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.endpoint.method.GET",
+			"description": "Percentage of endpoints with method GET",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "1"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://content-autofill.googleapis.com",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.code.2xx",
+			"description": "Percentage of responses with status code 2xx",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.endpoint.ctype.application/json",
+			"description": "Percentage of endpoints with content type application/json",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.endpoint.method.POST",
+			"description": "Percentage of endpoints with method POST",
+			"statistic": "100"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.endpoint.total",
+			"description": "Count of total endpoints",
+			"statistic": "7"
+		},
+		{
+			"level": "Informações",
+			"reason": "Informativo",
+			"site": "https://update.googleapis.com",
+			"key": "insight.response.slow",
+			"description": "Percentage of slow responses",
+			"statistic": "100"
+		}
+	],
+	"site":[ 
+		{
+			"@name": "http://localhost:5173",
+			"@host": "localhost",
+			"@port": "5173",
+			"@ssl": "false",
+			"alerts": [ 
+				{
+					"pluginid": "10055",
+					"alertRef": "10055-5",
+					"alert": "CSP: script-src unsafe-inline",
+					"name": "CSP: script-src unsafe-inline",
+					"riskcode": "2",
+					"confidence": "3",
+					"riskdesc": "M\u00E9dio (Alto)",
+					"desc": "<p>Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks. Including (but not limited to) Cross Site Scripting (XSS), and data injection attacks. These attacks are used for everything from data theft to site defacement or distribution of malware. CSP provides a set of standard HTTP headers that allow website owners to declare approved sources of content that browsers should be allowed to load on that page \u2014 covered types are JavaScript, CSS, HTML frames, fonts, images and embeddable objects such as Java applets, ActiveX, audio and video files.</p>",
+					"instances":[ 
+						{
+							"id": "2",
+							"uri": "http://localhost:5173/",
+							"nodeName": "http:\/\/localhost:5173\/",
+							"method": "GET",
+							"param": "Content-Security-Policy",
+							"attack": "",
+							"evidence": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws://localhost:5173 ws://127.0.0.1:5173; manifest-src 'self'; worker-src 'self' blob:",
+							"otherinfo": "script-src includes unsafe-inline."
+						}
+					],
+					"count": "1",
+					"systemic": true,
+					"solution": "<p>Ensure that your web server, application server, load balancer, etc. is properly configured to set the Content-Security-Policy header.</p>",
+					"otherinfo": "<p>script-src includes unsafe-inline.</p>",
+					"reference": "<p>https://www.w3.org/TR/CSP/</p><p>https://caniuse.com/#search=content+security+policy</p><p>https://content-security-policy.com/</p><p>https://github.com/HtmlUnit/htmlunit-csp</p><p>https://web.dev/articles/csp#resource-options</p>",
+					"cweid": "693",
+					"wascid": "15",
+					"sourceid": "6"
+				},
+				{
+					"pluginid": "10055",
+					"alertRef": "10055-6",
+					"alert": "CSP: style-src unsafe-inline",
+					"name": "CSP: style-src unsafe-inline",
+					"riskcode": "2",
+					"confidence": "3",
+					"riskdesc": "M\u00E9dio (Alto)",
+					"desc": "<p>Content Security Policy (CSP) is an added layer of security that helps to detect and mitigate certain types of attacks. Including (but not limited to) Cross Site Scripting (XSS), and data injection attacks. These attacks are used for everything from data theft to site defacement or distribution of malware. CSP provides a set of standard HTTP headers that allow website owners to declare approved sources of content that browsers should be allowed to load on that page \u2014 covered types are JavaScript, CSS, HTML frames, fonts, images and embeddable objects such as Java applets, ActiveX, audio and video files.</p>",
+					"instances":[ 
+						{
+							"id": "3",
+							"uri": "http://localhost:5173/",
+							"nodeName": "http:\/\/localhost:5173\/",
+							"method": "GET",
+							"param": "Content-Security-Policy",
+							"attack": "",
+							"evidence": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws://localhost:5173 ws://127.0.0.1:5173; manifest-src 'self'; worker-src 'self' blob:",
+							"otherinfo": "style-src includes unsafe-inline."
+						}
+					],
+					"count": "1",
+					"systemic": true,
+					"solution": "<p>Ensure that your web server, application server, load balancer, etc. is properly configured to set the Content-Security-Policy header.</p>",
+					"otherinfo": "<p>style-src includes unsafe-inline.</p>",
+					"reference": "<p>https://www.w3.org/TR/CSP/</p><p>https://caniuse.com/#search=content+security+policy</p><p>https://content-security-policy.com/</p><p>https://github.com/HtmlUnit/htmlunit-csp</p><p>https://web.dev/articles/csp#resource-options</p>",
+					"cweid": "693",
+					"wascid": "15",
+					"sourceid": "6"
+				},
+				{
+					"pluginid": "10096",
+					"alertRef": "10096",
+					"alert": "Divulga\u00E7\u00E3o de Data e Hora - Unix",
+					"name": "Divulga\u00E7\u00E3o de Data e Hora - Unix",
+					"riskcode": "1",
+					"confidence": "1",
+					"riskdesc": "Baixo (Baixo)",
+					"desc": "<p>A timestamp was disclosed by the application/web server. - Unix</p>",
+					"instances":[ 
+						{
+							"id": "24",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=9cb6d634",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-dom_client.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "2080374784",
+							"otherinfo": "2080374784, which evaluates to: 2035-12-04 06:53:04."
+						}
+					],
+					"count": "1",
+					"systemic": false,
+					"solution": "<p>Confirme manualmente se os dados do carimbo de data/hora n\u00E3o s\u00E3o confidenciais e se os dados n\u00E3o podem ser agregados para divulgar padr\u00F5es explor\u00E1veis.</p>",
+					"otherinfo": "<p>2080374784, which evaluates to: 2035-12-04 06:53:04.</p>",
+					"reference": "<p>https://cwe.mitre.org/data/definitions/200.html</p>",
+					"cweid": "497",
+					"wascid": "13",
+					"sourceid": "17"
+				},
+				{
+					"pluginid": "2",
+					"alertRef": "2",
+					"alert": "Private IP Disclosure",
+					"name": "Private IP Disclosure",
+					"riskcode": "1",
+					"confidence": "2",
+					"riskdesc": "Baixo (M\u00E9dio)",
+					"desc": "<p>A private IP (such as 10.x.x.x, 172.x.x.x, 192.168.x.x) or an Amazon EC2 private hostname (for example, ip-10-0-56-78) has been found in the HTTP response body. This information might be helpful for further attacks targeting internal systems.</p>",
+					"instances":[ 
+						{
+							"id": "19",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-icons_fa.js?v=6d8ded3c",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-icons_fa.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "10.8.1.1",
+							"otherinfo": "10.8.1.1\n10.8.1.1\n10.1.9.34\n"
+						}
+					],
+					"count": "1",
+					"systemic": false,
+					"solution": "<p>Remove the private IP address from the HTTP response body. For comments, use JSP/ASP/PHP comment instead of HTML/JavaScript comment which can be seen by client browsers.</p>",
+					"otherinfo": "<p>10.8.1.1</p><p>10.8.1.1</p><p>10.1.9.34</p><p></p>",
+					"reference": "<p>https://datatracker.ietf.org/doc/html/rfc1918</p>",
+					"cweid": "497",
+					"wascid": "13",
+					"sourceid": "75"
+				},
+				{
+					"pluginid": "10027",
+					"alertRef": "10027",
+					"alert": "Divulga\u00E7\u00E3o de Informa\u00E7\u00F5es - Coment\u00E1rios Suspeitos",
+					"name": "Divulga\u00E7\u00E3o de Informa\u00E7\u00F5es - Coment\u00E1rios Suspeitos",
+					"riskcode": "0",
+					"confidence": "2",
+					"riskdesc": "Informativo (M\u00E9dio)",
+					"desc": "<p>The response appears to contain suspicious comments which may help an attacker.</p>",
+					"instances":[ 
+						{
+							"id": "7",
+							"uri": "http://localhost:5173/@react-refresh",
+							"nodeName": "http:\/\/localhost:5173\/@react-refresh",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "// TODO: rename these field",
+							"otherinfo": "The following pattern was used: \\bTODO\\b and was detected in likely comment: \"// TODO: rename these fields to something more meaningful.\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "6",
+							"uri": "http://localhost:5173/@react-refresh",
+							"nodeName": "http:\/\/localhost:5173\/@react-refresh",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "ogic is copy-pasted from similar logic in th",
+							"otherinfo": "The following pattern was used: \\bFROM\\b and was detected 2 times, the first in likely comment: \"// This logic is copy-pasted from similar logic in the DevTools backend.\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "12",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/axios.js?v=a5dd12b8",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/axios.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": ". `Object.prototype.username = '...'`), which\n* ",
+							"otherinfo": "The following pattern was used: \\bUSERNAME\\b and was detected in likely comment: \"/**\n* Walk the prototype chain (excluding the shared Object.prototype) looking for\n* an own `prop`. This distinguishes genuine o\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "11",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/axios.js?v=a5dd12b8",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/axios.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "in the same key the later object in\n* the arg",
+							"otherinfo": "The following pattern was used: \\bLATER\\b and was detected 2 times, the first in likely comment: \"/**\n* Accepts varargs expecting each argument to be an object, then\n* immutably merges the properties of each object and returns\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "14",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/axios.js?v=a5dd12b8",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/axios.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "nly when it is safe from Object.prototype po",
+							"otherinfo": "The following pattern was used: \\bFROM\\b and was detected 12 times, the first in likely comment: \"/**\n* Read `obj[prop]` only when it is safe from Object.prototype pollution. Own\n* properties and members inherited from a non-O\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "13",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/axios.js?v=a5dd12b8",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/axios.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "trusted input (e.g. user-supplied header sou",
+							"otherinfo": "The following pattern was used: \\bUSER\\b and was detected in likely comment: \"/**\n* Determine if a value is iterable via an iterator that is NOT sourced solely\n* from a polluted Object.prototype. Use this i\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "17",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-bootstrap.js?v=1427dc24",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-bootstrap.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": " If a prop switches from controlled to Uncon",
+							"otherinfo": "The following pattern was used: \\bFROM\\b and was detected 9 times, the first in likely comment: \"/**\n\t* If a prop switches from controlled to Uncontrolled\n\t* reset its value to the defaultValue\n\t*/\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "16",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-bootstrap.js?v=1427dc24",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-bootstrap.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": " `onEnter`) because user already has direct ",
+							"otherinfo": "The following pattern was used: \\bUSER\\b and was detected 2 times, the first in likely comment: \"/**\n\t* A React reference to DOM element that need to transition:\n\t* https://stackoverflow.com/a/51127130/4671932\n\t*\n\t*   - When \", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "15",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-bootstrap.js?v=1427dc24",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-bootstrap.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "/**\n* Match a media query and get updates as ",
+							"otherinfo": "The following pattern was used: \\bQUERY\\b and was detected in likely comment: \"/**\n* Match a media query and get updates as the match changes. The media string is\n* passed directly to `window.matchMedia` and\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "18",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-bootstrap.js?v=1427dc24",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-bootstrap.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "urrent mode usage\n* where previous work in `r",
+							"otherinfo": "The following pattern was used: \\bWHERE\\b and was detected 5 times, the first in likely comment: \"/**\n* Creates a `Ref` whose value is updated in an effect, ensuring the most recent\n* value is the one rendered with. Generally \", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "20",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-router.js?v=2a3e3d62",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-router.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "IComponent` targets query-string values, wher",
+							"otherinfo": "The following pattern was used: \\bQUERY\\b and was detected 8 times, the first in likely comment: \"/**\n* Characters that `encodeURIComponent` escapes but that are valid literally in\n* a URL path segment. Per RFC 3986 \u00A73.3, a pa\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "23",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-router.js?v=2a3e3d62",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-router.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "al\n* for situations where you don't want to s",
+							"otherinfo": "The following pattern was used: \\bWHERE\\b and was detected 5 times, the first in likely comment: \"/**\n* Hash history stores the location in window.location.hash. This makes it ideal\n* for situations where you don't want to sen\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "21",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-router.js?v=2a3e3d62",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-router.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "reate a context for user data\n* export const",
+							"otherinfo": "The following pattern was used: \\bUSER\\b and was detected 16 times, the first in likely comment: \"/**\n* Creates a type-safe {@link RouterContext} object that can be used to\n* store and retrieve arbitrary values in [`action`](.\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "22",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/react-router.js?v=2a3e3d62",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/react-router.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "t with a unique key from the given Path\n*/",
+							"otherinfo": "The following pattern was used: \\bFROM\\b and was detected 38 times, the first in likely comment: \"/**\n* Creates a Location object with a unique key from the given Path\n*/\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "29",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/recharts.js?v=2904f52f",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/recharts.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "he component by the user\n* @param defaultPro",
+							"otherinfo": "The following pattern was used: \\bUSER\\b and was detected 25 times, the first in likely comment: \"/**\n* This function mimics the behavior of the `defaultProps` static property in React.\n* Functional components do not have a de\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "28",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/recharts.js?v=2904f52f",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/recharts.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "l sometimes want to select the full range of d",
+							"otherinfo": "The following pattern was used: \\bSELECT\\b and was detected 5 times, the first in likely comment: \"/**\n* This selector always returns the data with the indexes set by a Brush.\n* Trouble is, that might or might not be what you w\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "30",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/recharts.js?v=2904f52f",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/recharts.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "lter SVG properties from various input types",
+							"otherinfo": "The following pattern was used: \\bFROM\\b and was detected 56 times, the first in likely comment: \"/**\n* Function to filter SVG properties from various input types.\n* The input types can be:\n* - A record of string keys to any v\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "31",
+							"uri": "http://localhost:5173/node_modules/.vite/deps/recharts.js?v=2904f52f",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/.vite\/deps\/recharts.js (v)",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "used in some places where the 2.x API allowed",
+							"otherinfo": "The following pattern was used: \\bWHERE\\b and was detected 11 times, the first in likely comment: \"/**\n* This type mixes together all the possible label positions for both cartesian and polar coordinates.\n* It is used in some p\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "150",
+							"uri": "http://localhost:5173/node_modules/bootstrap",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/bootstrap",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": " stop cycling until user tapped out of it;",
+							"otherinfo": "The following pattern was used: \\bUSER\\b and was detected in likely comment: \"// would stop cycling until user tapped out of it;\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "152",
+							"uri": "http://localhost:5173/node_modules/bootstrap",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/bootstrap",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "// TODO: tooltip passes `fa",
+							"otherinfo": "The following pattern was used: \\bTODO\\b and was detected 17 times, the first in likely comment: \"// TODO: tooltip passes `false` instead of selector, so we need to check\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "149",
+							"uri": "http://localhost:5173/node_modules/bootstrap",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/bootstrap",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "// can be removed later when multiple key/i",
+							"otherinfo": "The following pattern was used: \\bLATER\\b and was detected in likely comment: \"// can be removed later when multiple key/instances are fine to be used\", see evidence field for the suspicious comment/snippet."
+						},
+						{
+							"id": "151",
+							"uri": "http://localhost:5173/node_modules/bootstrap",
+							"nodeName": "http:\/\/localhost:5173\/node_modules\/bootstrap",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "revents the handler from being dispatched th",
+							"otherinfo": "The following pattern was used: \\bFROM\\b and was detected 3 times, the first in likely comment: \"// this prevents the handler from being dispatched the same way as mouseover or mouseout does\", see evidence field for the suspicious comment/snippet."
+						}
+					],
+					"count": "22",
+					"systemic": false,
+					"solution": "<p>Remova todos os coment\u00E1rios que retornam informa\u00E7\u00F5es que podem ajudar um invasor e corrigir quaisquer problemas subjacentes aos quais eles se referem.</p>",
+					"otherinfo": "<p>The following pattern was used: \\bTODO\\b and was detected in likely comment: \"// TODO: rename these fields to something more meaningful.\", see evidence field for the suspicious comment/snippet.</p>",
+					"reference": "",
+					"cweid": "615",
+					"wascid": "13",
+					"sourceid": "12"
+				},
+				{
+					"pluginid": "10024",
+					"alertRef": "10024",
+					"alert": "Information Disclosure - Sensitive Information in URL",
+					"name": "Information Disclosure - Sensitive Information in URL",
+					"riskcode": "0",
+					"confidence": "2",
+					"riskdesc": "Informativo (M\u00E9dio)",
+					"desc": "<p>A solicita\u00E7\u00E3o parecia conter informa\u00E7\u00F5es confidenciais vazadas no URL. Isso pode violar a PCI e a maioria das pol\u00EDticas de conformidade organizacional. Voc\u00EA pode configurar a lista de strings para esta verifica\u00E7\u00E3o para adicionar ou remover valores espec\u00EDficos para seu ambiente.</p>",
+					"instances":[ 
+						{
+							"id": "5",
+							"uri": "http://localhost:5173/?token=1ZP9a31lFtGZ",
+							"nodeName": "http:\/\/localhost:5173\/ (token)",
+							"method": "GET",
+							"param": "token",
+							"attack": "",
+							"evidence": "token",
+							"otherinfo": "The URL contains potentially sensitive information. The following string was found via the pattern: token\ntoken"
+						}
+					],
+					"count": "1",
+					"systemic": false,
+					"solution": "<p>N\u00E3o passe informa\u00E7\u00F5es confidenciais em URIs.</p>",
+					"otherinfo": "<p>The URL contains potentially sensitive information. The following string was found via the pattern: token</p><p>token</p>",
+					"reference": "",
+					"cweid": "598",
+					"wascid": "13",
+					"sourceid": "32"
+				},
+				{
+					"pluginid": "10109",
+					"alertRef": "10109",
+					"alert": "Modern Web Application",
+					"name": "Modern Web Application",
+					"riskcode": "0",
+					"confidence": "2",
+					"riskdesc": "Informativo (M\u00E9dio)",
+					"desc": "<p>The application appears to be a modern web application. If you need to explore it automatically then the Client Spider may well be more effective than the standard one.</p>",
+					"instances":[ 
+						{
+							"id": "4",
+							"uri": "http://localhost:5173/",
+							"nodeName": "http:\/\/localhost:5173\/",
+							"method": "GET",
+							"param": "",
+							"attack": "",
+							"evidence": "<script type=\"module\">import { injectIntoGlobalHook } from \"/@react-refresh\";\ninjectIntoGlobalHook(window);\nwindow.$RefreshReg$ = () => {};\nwindow.$RefreshSig$ = () => (type) => type;</script>",
+							"otherinfo": "No links have been found while there are scripts, which is an indication that this is a modern web application."
+						}
+					],
+					"count": "1",
+					"systemic": true,
+					"solution": "<p>This is an informational alert and so no changes are required.</p>",
+					"otherinfo": "<p>No links have been found while there are scripts, which is an indication that this is a modern web application.</p>",
+					"reference": "",
+					"cweid": "-1",
+					"wascid": "-1",
+					"sourceid": "6"
+				}
+			]
+		},
+		{
+			"@name": "http://127.0.0.1:3001",
+			"@host": "127.0.0.1",
+			"@port": "3001",
+			"@ssl": "false",
+			"alerts": [ 
+			]
+		}
+	],
+	"sequences":[
+	]
+
+}

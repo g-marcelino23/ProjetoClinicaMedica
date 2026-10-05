@@ -1,23 +1,29 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Alert, Button, Form, Spinner } from 'react-bootstrap'
+import { Link, useNavigate } from 'react-router'
 import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Form,
-  Button,
-  Alert,
-  Spinner,
-  InputGroup
-} from 'react-bootstrap'
-import { FaUser, FaEnvelope, FaLock, FaIdCard, FaPhone, FaCalendarAlt, FaMapMarkerAlt, FaHeartbeat } from 'react-icons/fa'
+  FaArrowLeft,
+  FaCalendarAlt,
+  FaCalendarCheck,
+  FaEnvelope,
+  FaEye,
+  FaEyeSlash,
+  FaFileMedical,
+  FaHeartbeat,
+  FaIdCard,
+  FaLock,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaShieldAlt,
+  FaUser,
+  FaUserInjured
+} from 'react-icons/fa'
+import AuthShell from '../components/auth/AuthShell'
 import { registerUsuario } from '../services/authService'
-import './CadastroPacientePage.css'
+import { formatCPF, formatPhone, onlyNumbers } from '../utils/registrationFormatters'
 
 function CadastroPacientePage() {
   const navigate = useNavigate()
-
   const [formData, setFormData] = useState({
     nome: '',
     email: '',
@@ -27,317 +33,122 @@ function CadastroPacientePage() {
     data_nascimento: '',
     endereco: ''
   })
-
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
   const [loading, setLoading] = useState(false)
+  const [mostrarSenha, setMostrarSenha] = useState(false)
 
-  const limparNumeros = (valor) => valor.replace(/\D/g, '')
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    let nextValue = value
 
-  const formatarCPF = (valor) => {
-    const numeros = valor.replace(/\D/g, '').slice(0, 11)
+    if (name === 'cpf') nextValue = formatCPF(value)
+    if (name === 'telefone') nextValue = formatPhone(value)
 
-    if (numeros.length <= 3) return numeros
-    if (numeros.length <= 6) return `${numeros.slice(0, 3)}.${numeros.slice(3)}`
-    if (numeros.length <= 9) return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6)}`
-    return `${numeros.slice(0, 3)}.${numeros.slice(3, 6)}.${numeros.slice(6, 9)}-${numeros.slice(9, 11)}`
+    setErro('')
+    setFormData((prev) => ({ ...prev, [name]: nextValue }))
   }
 
-  const formatarTelefone = (valor) => {
-    const numeros = valor.replace(/\D/g, '').slice(0, 11)
-
-    if (numeros.length <= 2) return numeros
-    if (numeros.length <= 7) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`
-    if (numeros.length <= 10) {
-      return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 6)}-${numeros.slice(6)}`
-    }
-    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`
-  }
-
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    let novoValor = value
-
-    if (name === 'cpf') {
-      novoValor = formatarCPF(value)
-    }
-
-    if (name === 'telefone') {
-      novoValor = formatarTelefone(value)
-    }
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: novoValor
-    }))
-  }
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (event) => {
+    event.preventDefault()
     setErro('')
     setSucesso('')
 
-    const cpfLimpo = limparNumeros(formData.cpf)
-    const telefoneLimpo = limparNumeros(formData.telefone)
+    const cpf = onlyNumbers(formData.cpf)
+    const telefone = onlyNumbers(formData.telefone)
 
-    if (cpfLimpo.length !== 11) {
+    if (cpf.length !== 11) {
       setErro('CPF inválido. Digite os 11 números do CPF.')
       return
     }
 
-    if (telefoneLimpo && telefoneLimpo.length !== 10 && telefoneLimpo.length !== 11) {
+    if (telefone && ![10, 11].includes(telefone.length)) {
       setErro('Telefone inválido. Digite um telefone com DDD.')
       return
     }
 
     try {
       setLoading(true)
-
-      const payload = {
+      const response = await registerUsuario({
         ...formData,
         perfil: 'PACIENTE',
-        cpf: cpfLimpo,
-        telefone: telefoneLimpo
-      }
-
-      const response = await registerUsuario(payload)
-
+        cpf,
+        telefone
+      })
       setSucesso(response.mensagem || 'Cadastro realizado com sucesso!')
-
-      setTimeout(() => {
-        navigate('/login')
-      }, 1500)
+      setTimeout(() => navigate('/login'), 1500)
     } catch (error) {
-      setErro(error.response?.data?.erro || 'Erro ao cadastrar paciente')
+      setErro(error.response?.data?.erro || 'Erro ao cadastrar paciente.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="cadastro-paciente-page">
-      <Container fluid className="cadastro-paciente-container">
-        <Row className="min-vh-100">
-          <Col md={5} className="cadastro-paciente-banner d-none d-md-flex">
-            <div className="cadastro-paciente-overlay"></div>
+    <AuthShell
+      tone="patient"
+      eyebrow="Área do paciente"
+      title="Sua saúde mais próxima e organizada."
+      description="Crie sua conta para acompanhar consultas, exames, prescrições e seu histórico clínico com praticidade."
+      features={[
+        { icon: FaCalendarCheck, title: 'Acompanhe consultas', text: 'Visualize seus próximos atendimentos.' },
+        { icon: FaFileMedical, title: 'Histórico acessível', text: 'Consulte exames e registros clínicos.' },
+        { icon: FaShieldAlt, title: 'Dados protegidos', text: 'Acesso individual às suas informações.' }
+      ]}
+    >
+      <Link to="/login" className="auth-back-link"><FaArrowLeft />Voltar para o login</Link>
+      <header className="auth-form-header">
+        <span className="auth-form-header__icon"><FaUserInjured /></span>
+        <span className="auth-form-header__eyebrow">Nova conta</span>
+        <h2>Cadastro de paciente</h2>
+        <p>Preencha seus dados pessoais para começar.</p>
+      </header>
 
-            <div className="cadastro-paciente-banner-content">
-              <span className="cadastro-paciente-badge">
-                <FaHeartbeat className="me-2" />
-                Área do Paciente
-              </span>
+      {erro && <Alert variant="danger" className="auth-alert">{erro}</Alert>}
+      {sucesso && <Alert variant="success" className="auth-alert">{sucesso}</Alert>}
 
-              <h1>Cuide da sua saúde com mais praticidade</h1>
-
-              <p>
-                Crie sua conta para acessar consultas, exames, prontuários e acompanhar
-                seu atendimento de forma simples, organizada e segura.
-              </p>
-
-              <div className="cadastro-paciente-info-box">
-                <strong>Clinical Med</strong>
-                <span>
-                  Um ambiente pensado para facilitar sua jornada como paciente.
-                </span>
-              </div>
+      <Form onSubmit={handleSubmit}>
+        <div className="auth-grid">
+          <Form.Group className="auth-field auth-field--full">
+            <Form.Label>Nome completo <span>*</span></Form.Label>
+            <div className="auth-input-wrap"><FaUser /><Form.Control name="nome" value={formData.nome} onChange={handleChange} placeholder="Digite seu nome completo" autoComplete="name" required /></div>
+          </Form.Group>
+          <Form.Group className="auth-field">
+            <Form.Label>E-mail <span>*</span></Form.Label>
+            <div className="auth-input-wrap"><FaEnvelope /><Form.Control type="email" name="email" value={formData.email} onChange={handleChange} placeholder="seuemail@exemplo.com" autoComplete="email" required /></div>
+          </Form.Group>
+          <Form.Group className="auth-field">
+            <Form.Label>Senha <span>*</span></Form.Label>
+            <div className="auth-input-wrap has-action">
+              <FaLock />
+              <Form.Control type={mostrarSenha ? 'text' : 'password'} name="senha" value={formData.senha} onChange={handleChange} placeholder="Mínimo de 15 caracteres" autoComplete="new-password" minLength={15} maxLength={72} required />
+              <button type="button" className="auth-input-action" onClick={() => setMostrarSenha((prev) => !prev)} aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}>{mostrarSenha ? <FaEyeSlash /> : <FaEye />}</button>
             </div>
-          </Col>
-
-          <Col md={7} xs={12} className="cadastro-paciente-form-wrapper">
-            <div className="cadastro-paciente-form-box">
-              <Card className="cadastro-paciente-card shadow-lg border-0">
-                <Card.Body className="p-4 p-lg-5">
-                  <div className="text-center mb-4">
-                    <h2 className="cadastro-paciente-title fw-bold">
-                      Cadastro de Paciente
-                    </h2>
-                    <p className="text-muted mb-0">
-                      Preencha seus dados para criar sua conta no Clinical Med
-                    </p>
-                  </div>
-
-                  {erro && <Alert variant="danger">{erro}</Alert>}
-                  {sucesso && <Alert variant="success">{sucesso}</Alert>}
-
-                  <Form onSubmit={handleSubmit}>
-                    <Row>
-                      <Col md={12}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Nome completo</Form.Label>
-                          <InputGroup className="cadastro-input-group">
-                            <InputGroup.Text className="cadastro-input-icon">
-                              <FaUser />
-                            </InputGroup.Text>
-                            <Form.Control
-                              type="text"
-                              name="nome"
-                              value={formData.nome}
-                              onChange={handleChange}
-                              placeholder="Digite seu nome completo"
-                              required
-                              className="cadastro-input"
-                            />
-                          </InputGroup>
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>E-mail</Form.Label>
-                          <InputGroup className="cadastro-input-group">
-                            <InputGroup.Text className="cadastro-input-icon">
-                              <FaEnvelope />
-                            </InputGroup.Text>
-                            <Form.Control
-                              type="email"
-                              name="email"
-                              value={formData.email}
-                              onChange={handleChange}
-                              placeholder="Digite seu e-mail"
-                              required
-                              className="cadastro-input"
-                            />
-                          </InputGroup>
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Senha</Form.Label>
-                          <InputGroup className="cadastro-input-group">
-                            <InputGroup.Text className="cadastro-input-icon">
-                              <FaLock />
-                            </InputGroup.Text>
-                            <Form.Control
-                              type="password"
-                              name="senha"
-                              value={formData.senha}
-                              onChange={handleChange}
-                              placeholder="Digite sua senha"
-                              required
-                              className="cadastro-input"
-                            />
-                          </InputGroup>
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>CPF</Form.Label>
-                          <InputGroup className="cadastro-input-group">
-                            <InputGroup.Text className="cadastro-input-icon">
-                              <FaIdCard />
-                            </InputGroup.Text>
-                            <Form.Control
-                              type="text"
-                              name="cpf"
-                              value={formData.cpf}
-                              onChange={handleChange}
-                              placeholder="000.000.000-00"
-                              inputMode="numeric"
-                              maxLength={14}
-                              required
-                              className="cadastro-input"
-                            />
-                          </InputGroup>
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Telefone</Form.Label>
-                          <InputGroup className="cadastro-input-group">
-                            <InputGroup.Text className="cadastro-input-icon">
-                              <FaPhone />
-                            </InputGroup.Text>
-                            <Form.Control
-                              type="text"
-                              name="telefone"
-                              value={formData.telefone}
-                              onChange={handleChange}
-                              placeholder="(85) 99999-9999"
-                              inputMode="numeric"
-                              maxLength={15}
-                              className="cadastro-input"
-                            />
-                          </InputGroup>
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group className="mb-3">
-                          <Form.Label>Data de nascimento</Form.Label>
-                          <InputGroup className="cadastro-input-group">
-                            <InputGroup.Text className="cadastro-input-icon">
-                              <FaCalendarAlt />
-                            </InputGroup.Text>
-                            <Form.Control
-                              type="date"
-                              name="data_nascimento"
-                              value={formData.data_nascimento}
-                              onChange={handleChange}
-                              className="cadastro-input"
-                            />
-                          </InputGroup>
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group className="mb-4">
-                          <Form.Label>Endereço</Form.Label>
-                          <InputGroup className="cadastro-input-group">
-                            <InputGroup.Text className="cadastro-input-icon">
-                              <FaMapMarkerAlt />
-                            </InputGroup.Text>
-                            <Form.Control
-                              type="text"
-                              name="endereco"
-                              value={formData.endereco}
-                              onChange={handleChange}
-                              placeholder="Digite seu endereço"
-                              className="cadastro-input"
-                            />
-                          </InputGroup>
-                        </Form.Group>
-                      </Col>
-                    </Row>
-
-                    <div className="d-grid mb-3">
-                      <Button
-                        type="submit"
-                        className="cadastro-paciente-btn"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <>
-                            <Spinner
-                              as="span"
-                              animation="border"
-                              size="sm"
-                              className="me-2"
-                            />
-                            Cadastrando...
-                          </>
-                        ) : (
-                          'Cadastrar Paciente'
-                        )}
-                      </Button>
-                    </div>
-
-                    <div className="text-center">
-                      <span className="text-muted">Já tem conta? </span>
-                      <Link to="/login" className="cadastro-paciente-link">
-                        Entrar
-                      </Link>
-                    </div>
-                  </Form>
-                </Card.Body>
-              </Card>
-            </div>
-          </Col>
-        </Row>
-      </Container>
-    </div>
+          </Form.Group>
+          <Form.Group className="auth-field">
+            <Form.Label>CPF <span>*</span></Form.Label>
+            <div className="auth-input-wrap"><FaIdCard /><Form.Control name="cpf" value={formData.cpf} onChange={handleChange} placeholder="000.000.000-00" inputMode="numeric" maxLength={14} required /></div>
+          </Form.Group>
+          <Form.Group className="auth-field">
+            <Form.Label>Telefone</Form.Label>
+            <div className="auth-input-wrap"><FaPhone /><Form.Control name="telefone" value={formData.telefone} onChange={handleChange} placeholder="(85) 99999-9999" inputMode="numeric" maxLength={15} /></div>
+          </Form.Group>
+          <Form.Group className="auth-field">
+            <Form.Label>Data de nascimento</Form.Label>
+            <div className="auth-input-wrap"><FaCalendarAlt /><Form.Control type="date" name="data_nascimento" value={formData.data_nascimento} onChange={handleChange} /></div>
+          </Form.Group>
+          <Form.Group className="auth-field">
+            <Form.Label>Endereço</Form.Label>
+            <div className="auth-input-wrap"><FaMapMarkerAlt /><Form.Control name="endereco" value={formData.endereco} onChange={handleChange} placeholder="Digite seu endereço" /></div>
+          </Form.Group>
+        </div>
+        <div className="auth-form-note"><FaHeartbeat />Os campos marcados com asterisco são obrigatórios.</div>
+        <Button type="submit" className="auth-submit" disabled={loading}>
+          {loading ? <><Spinner animation="border" size="sm" />Cadastrando</> : <>Criar conta de paciente</>}
+        </Button>
+        <p className="auth-footer-link">Já possui uma conta? <Link to="/login">Entrar</Link></p>
+      </Form>
+    </AuthShell>
   )
 }
 

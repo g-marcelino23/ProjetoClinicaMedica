@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const obterResumoDashboard = async (req, res) => {
+const obterResumoDashboard = async (req, res, next) => {
     try {
         const totalPacientes = await pool.query(
             'SELECT COUNT(*) AS total FROM pacientes'
@@ -54,7 +54,7 @@ const obterResumoDashboard = async (req, res) => {
             lista_espera_por_status: listaEsperaPorStatus.rows
         });
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 

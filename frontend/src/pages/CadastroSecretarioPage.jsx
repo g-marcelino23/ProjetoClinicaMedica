@@ -1,217 +1,101 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { Alert, Button, Form, Spinner } from 'react-bootstrap'
+import { Link, useNavigate } from 'react-router'
 import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Form,
-  Button,
-  Alert,
-  Spinner,
-  InputGroup
-} from 'react-bootstrap'
-import {
-  FaUserTie,
-  FaUser,
+  FaArrowLeft,
+  FaCalendarCheck,
+  FaClipboardList,
   FaEnvelope,
+  FaEye,
+  FaEyeSlash,
   FaLock,
-  FaClipboardList
+  FaShieldAlt,
+  FaUser,
+  FaUserTie,
+  FaUsers
 } from 'react-icons/fa'
+import AuthShell from '../components/auth/AuthShell'
 import { registerUsuario } from '../services/authService'
-import './CadastroSecretarioPage.css'
 
 function CadastroSecretarioPage() {
   const navigate = useNavigate()
-
-  const [formData, setFormData] = useState({
-    nome: '',
-    email: '',
-    senha: ''
-  })
-
+  const [formData, setFormData] = useState({ nome: '', email: '', senha: '' })
   const [erro, setErro] = useState('')
   const [sucesso, setSucesso] = useState('')
   const [loading, setLoading] = useState(false)
+  const [mostrarSenha, setMostrarSenha] = useState(false)
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value
-    }))
+  const handleChange = (event) => {
+    const { name, value } = event.target
+    setErro('')
+    setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+  const handleSubmit = async (event) => {
+    event.preventDefault()
     setErro('')
     setSucesso('')
 
     try {
       setLoading(true)
-
-      const payload = {
-        ...formData,
-        perfil: 'SECRETARIO'
-      }
-
-      const response = await registerUsuario(payload)
-
+      const response = await registerUsuario({ ...formData, perfil: 'SECRETARIO' })
       setSucesso(response.mensagem || 'Cadastro realizado com sucesso!')
-
-      setTimeout(() => {
-        navigate('/login')
-      }, 1500)
+      setTimeout(() => navigate('/login'), 1500)
     } catch (error) {
-      setErro(error.response?.data?.erro || 'Erro ao cadastrar secretário')
+      setErro(error.response?.data?.erro || 'Erro ao cadastrar secretário.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="cadastro-secretario-page">
-      <Container fluid className="cadastro-secretario-container">
-        <Row className="min-vh-100">
-          <Col md={5} className="cadastro-secretario-banner d-none d-md-flex">
-            <div className="cadastro-secretario-overlay"></div>
+    <AuthShell
+      tone="secretary"
+      eyebrow="Área administrativa"
+      title="Organização para uma clínica que funciona melhor."
+      description="Crie seu acesso administrativo para coordenar cadastros, agendas, filas e os principais fluxos da clínica."
+      features={[
+        { icon: FaCalendarCheck, title: 'Agendas e consultas', text: 'Coordene horários e atendimentos.' },
+        { icon: FaUsers, title: 'Gestão de cadastros', text: 'Organize pacientes e profissionais.' },
+        { icon: FaShieldAlt, title: 'Controle operacional', text: 'Acesse indicadores e relatórios da clínica.' }
+      ]}
+      panelClassName="auth-panel--login"
+    >
+      <Link to="/login" className="auth-back-link"><FaArrowLeft />Voltar para o login</Link>
+      <header className="auth-form-header">
+        <span className="auth-form-header__icon"><FaUserTie /></span>
+        <span className="auth-form-header__eyebrow">Conta administrativa</span>
+        <h2>Cadastro de secretário</h2>
+        <p>Preencha os dados para criar seu acesso.</p>
+      </header>
+      {erro && <Alert variant="danger" className="auth-alert">{erro}</Alert>}
+      {sucesso && <Alert variant="success" className="auth-alert">{sucesso}</Alert>}
 
-            <div className="cadastro-secretario-banner-content">
-              <span className="cadastro-secretario-badge">
-                <FaUserTie className="me-2" />
-                Área Administrativa
-              </span>
-
-              <h1>Organização e eficiência na gestão clínica</h1>
-
-              <p>
-                Cadastre-se para acessar a área administrativa do Clinical Med
-                e gerenciar atendimentos, cadastros e fluxos da clínica com mais controle.
-              </p>
-
-              <div className="cadastro-secretario-info-box">
-                <strong>Clinical Med</strong>
-                <span>
-                  Um ambiente pensado para dar mais agilidade à rotina administrativa.
-                </span>
-              </div>
+      <Form onSubmit={handleSubmit}>
+        <div className="auth-grid">
+          <Form.Group className="auth-field auth-field--full">
+            <Form.Label>Nome completo <span>*</span></Form.Label>
+            <div className="auth-input-wrap"><FaUser /><Form.Control name="nome" value={formData.nome} onChange={handleChange} placeholder="Digite seu nome completo" autoComplete="name" required /></div>
+          </Form.Group>
+          <Form.Group className="auth-field auth-field--full">
+            <Form.Label>E-mail <span>*</span></Form.Label>
+            <div className="auth-input-wrap"><FaEnvelope /><Form.Control type="email" name="email" value={formData.email} onChange={handleChange} placeholder="seuemail@exemplo.com" autoComplete="email" required /></div>
+          </Form.Group>
+          <Form.Group className="auth-field auth-field--full">
+            <Form.Label>Senha <span>*</span></Form.Label>
+            <div className="auth-input-wrap has-action">
+              <FaLock /><Form.Control type={mostrarSenha ? 'text' : 'password'} name="senha" value={formData.senha} onChange={handleChange} placeholder="Mínimo de 15 caracteres" autoComplete="new-password" minLength={15} maxLength={72} required />
+              <button type="button" className="auth-input-action" onClick={() => setMostrarSenha((prev) => !prev)} aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}>{mostrarSenha ? <FaEyeSlash /> : <FaEye />}</button>
             </div>
-          </Col>
-
-          <Col md={7} xs={12} className="cadastro-secretario-form-wrapper">
-            <div className="cadastro-secretario-form-box">
-              <Card className="cadastro-secretario-card shadow-lg border-0">
-                <Card.Body className="p-4 p-lg-5">
-                  <div className="text-center mb-4">
-                    <h2 className="cadastro-secretario-title fw-bold">
-                      Cadastro de Secretário
-                    </h2>
-                    <p className="text-muted mb-0">
-                      Preencha os dados para criar sua conta administrativa
-                    </p>
-                  </div>
-
-                  {erro && <Alert variant="danger">{erro}</Alert>}
-                  {sucesso && <Alert variant="success">{sucesso}</Alert>}
-
-                  <Form onSubmit={handleSubmit}>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Nome completo</Form.Label>
-                      <InputGroup className="cadastro-secretario-input-group">
-                        <InputGroup.Text className="cadastro-secretario-input-icon">
-                          <FaUser />
-                        </InputGroup.Text>
-                        <Form.Control
-                          type="text"
-                          name="nome"
-                          value={formData.nome}
-                          onChange={handleChange}
-                          placeholder="Digite seu nome completo"
-                          required
-                          className="cadastro-secretario-input"
-                        />
-                      </InputGroup>
-                    </Form.Group>
-
-                    <Form.Group className="mb-3">
-                      <Form.Label>E-mail</Form.Label>
-                      <InputGroup className="cadastro-secretario-input-group">
-                        <InputGroup.Text className="cadastro-secretario-input-icon">
-                          <FaEnvelope />
-                        </InputGroup.Text>
-                        <Form.Control
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleChange}
-                          placeholder="Digite seu e-mail"
-                          required
-                          className="cadastro-secretario-input"
-                        />
-                      </InputGroup>
-                    </Form.Group>
-
-                    <Form.Group className="mb-4">
-                      <Form.Label>Senha</Form.Label>
-                      <InputGroup className="cadastro-secretario-input-group">
-                        <InputGroup.Text className="cadastro-secretario-input-icon">
-                          <FaLock />
-                        </InputGroup.Text>
-                        <Form.Control
-                          type="password"
-                          name="senha"
-                          value={formData.senha}
-                          onChange={handleChange}
-                          placeholder="Digite sua senha"
-                          required
-                          className="cadastro-secretario-input"
-                        />
-                      </InputGroup>
-                    </Form.Group>
-
-                    <div className="cadastro-secretario-highlight">
-                      <FaClipboardList className="me-2" />
-                      <span>
-                        Perfil com foco em organização, cadastros e controle operacional.
-                      </span>
-                    </div>
-
-                    <div className="d-grid mb-3 mt-4">
-                      <Button
-                        type="submit"
-                        className="cadastro-secretario-btn"
-                        disabled={loading}
-                      >
-                        {loading ? (
-                          <>
-                            <Spinner
-                              as="span"
-                              animation="border"
-                              size="sm"
-                              className="me-2"
-                            />
-                            Cadastrando...
-                          </>
-                        ) : (
-                          'Cadastrar Secretário'
-                        )}
-                      </Button>
-                    </div>
-
-                    <div className="text-center">
-                      <span className="text-muted">Já tem conta? </span>
-                      <Link to="/login" className="cadastro-secretario-link">
-                        Entrar
-                      </Link>
-                    </div>
-                  </Form>
-                </Card.Body>
-              </Card>
-            </div>
-          </Col>
-        </Row>
-      </Container>
-    </div>
+          </Form.Group>
+        </div>
+        <div className="auth-form-note"><FaClipboardList />Perfil voltado à organização de cadastros, agendas e fluxos operacionais.</div>
+        <Button type="submit" className="auth-submit" disabled={loading}>
+          {loading ? <><Spinner animation="border" size="sm" />Cadastrando</> : <>Criar conta administrativa</>}
+        </Button>
+        <p className="auth-footer-link">Já possui uma conta? <Link to="/login">Entrar</Link></p>
+      </Form>
+    </AuthShell>
   )
 }
 

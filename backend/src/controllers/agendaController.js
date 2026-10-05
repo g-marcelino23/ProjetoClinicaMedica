@@ -1,130 +1,175 @@
-const pool = require('../config/db');
+const pool = require('../config/db')
+const {
+  rollbackTransaction,
+} = require('../services/transactionService')
 
-const criarAgenda = async (req, res) => {
-    try {
-        const {
-            medico_id,
-            data_agenda,
-            hora_inicio,
-            hora_fim,
-            disponivel,
-            observacao
-        } = req.body;
-
-        if (!medico_id || !data_agenda || !hora_inicio || !hora_fim) {
-            return res.status(400).json({
-                erro: 'medico_id, data_agenda, hora_inicio e hora_fim são obrigatórios'
-            });
-        }
-
-        const medicoExiste = await pool.query(
-            'SELECT id FROM medicos WHERE id = $1',
-            [medico_id]
-        );
-
-        if (medicoExiste.rows.length === 0) {
-            return res.status(404).json({ erro: 'Médico não encontrado' });
-        }
-
-        const result = await pool.query(
-            `INSERT INTO agendas_medicas
-      (medico_id, data_agenda, hora_inicio, hora_fim, disponivel, observacao)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *`,
-            [
-                medico_id,
-                data_agenda,
-                hora_inicio,
-                hora_fim,
-                disponivel ?? true,
-                observacao
-            ]
-        );
-
-        res.status(201).json({
-            mensagem: 'Agenda criada com sucesso',
-            agenda: result.rows[0]
-        });
-    } catch (error) {
-        res.status(500).json({ erro: error.message });
+const getAgendaAccess = (user, requestedDoctorId = null) => {
+  if (user.perfil === 'SECRETARIO') {
+    return {
+      clause: requestedDoctorId ? 'a.medico_id = $1' : 'true',
+      params: requestedDoctorId ? [requestedDoctorId] : [],
+      includeObservation: true,
     }
-};
+  }
 
-const listarAgendas = async (req, res) => {
-    try {
-        const result = await pool.query(`
-      SELECT
-        a.id,
-        a.medico_id,
-        u.nome AS medico_nome,
-        m.especialidade,
-        a.data_agenda,
-        a.hora_inicio,
-        a.hora_fim,
-        a.disponivel,
-        a.observacao
-      FROM agendas_medicas a
-      JOIN medicos m ON m.id = a.medico_id
-      JOIN usuarios u ON u.id = m.usuario_id
-      ORDER BY a.data_agenda, a.hora_inicio
-    `);
-
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ erro: error.message });
+  if (user.perfil === 'MEDICO' && user.medico_id) {
+    if (requestedDoctorId && Number(requestedDoctorId) !== Number(user.medico_id)) {
+      return { clause: 'false', params: [], includeObservation: false }
     }
-};
 
-const listarAgendaPorMedico = async (req, res) => {
-    try {
-        const { medicoId } = req.params;
-
-        const result = await pool.query(`
-      SELECT
-        a.id,
-        a.medico_id,
-        u.nome AS medico_nome,
-        m.especialidade,
-        a.data_agenda,
-        a.hora_inicio,
-        a.hora_fim,
-        a.disponivel,
-        a.observacao
-      FROM agendas_medicas a
-      JOIN medicos m ON m.id = a.medico_id
-      JOIN usuarios u ON u.id = m.usuario_id
-      WHERE a.medico_id = $1
-      ORDER BY a.data_agenda, a.hora_inicio
-    `, [medicoId]);
-
-        res.json(result.rows);
-    } catch (error) {
-        res.status(500).json({ erro: error.message });
+    return {
+      clause: 'a.medico_id = $1',
+      params: [user.medico_id],
+      includeObservation: true,
     }
-};
+  }
 
-const atualizarAgenda = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const {
-            data_agenda,
-            hora_inicio,
-            hora_fim,
-            disponivel,
-            observacao
-        } = req.body;
+  if (user.perfil === 'PACIENTE' && user.paciente_id) {
+    const doctorFilter = requestedDoctorId ? ' AND a.medico_id = $1' : ''
+    return {
+      clause: `a.disponivel = true
+               AND (a.data_agenda + a.hora_inicio) > LOCALTIMESTAMP${doctorFilter}`,
+      params: requestedDoctorId ? [requestedDoctorId] : [],
+      includeObservation: false,
+    }
+  }
 
-        const agendaExiste = await pool.query(
-            'SELECT * FROM agendas_medicas WHERE id = $1',
-            [id]
-        );
+  return { clause: 'false', params: [], includeObservation: false }
+}
 
-        if (agendaExiste.rows.length === 0) {
-            return res.status(404).json({ erro: 'Agenda não encontrada' });
-        }
+const listAgendas = async (req, res, next, requestedDoctorId = null) => {
+  try {
+    const access = getAgendaAccess(req.usuario, requestedDoctorId)
+    const observationField = access.includeObservation
+      ? ', a.observacao'
+      : ''
+    const result = await pool.query(
+      `SELECT
+         a.id,
+         a.medico_id,
+         u.nome AS medico_nome,
+         m.especialidade,
+         a.data_agenda,
+         a.hora_inicio,
+         a.hora_fim,
+         a.disponivel
+         ${observationField}
+       FROM agendas_medicas a
+       JOIN medicos m ON m.id = a.medico_id
+       JOIN usuarios u ON u.id = m.usuario_id
+       WHERE ${access.clause}
+       ORDER BY a.data_agenda, a.hora_inicio`,
+      access.params
+    )
 
-        const result = await pool.query(
-            `UPDATE agendas_medicas
+    res.json(result.rows)
+  } catch (error) {
+    next(error)
+  }
+}
+
+const criarAgenda = async (req, res, next) => {
+  try {
+    const doctor = await pool.query(
+      'SELECT id FROM medicos WHERE id = $1',
+      [req.body.medico_id]
+    )
+
+    if (doctor.rows.length === 0) {
+      return res.status(404).json({ erro: 'Médico não encontrado' })
+    }
+
+    const futureSlot = await pool.query(
+      `SELECT ($1::date + $2::time) > LOCALTIMESTAMP AS valido`,
+      [req.body.data_agenda, req.body.hora_inicio]
+    )
+
+    if (!futureSlot.rows[0].valido) {
+      return res.status(409).json({
+        erro: 'Não é permitido criar horário no passado',
+      })
+    }
+
+    const result = await pool.query(
+      `INSERT INTO agendas_medicas (
+         medico_id, data_agenda, hora_inicio, hora_fim, disponivel, observacao
+       )
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        req.body.medico_id,
+        req.body.data_agenda,
+        req.body.hora_inicio,
+        req.body.hora_fim,
+        req.body.disponivel ?? true,
+        req.body.observacao || null,
+      ]
+    )
+
+    res.status(201).json({
+      mensagem: 'Agenda criada com sucesso',
+      agenda: result.rows[0],
+    })
+  } catch (error) {
+    if (['23505', '23P01'].includes(error.code)) {
+      return res.status(409).json({
+        erro: 'O horário se sobrepõe a outro horário deste médico',
+      })
+    }
+
+    next(error)
+  }
+}
+
+const listarAgendas = (req, res, next) => listAgendas(req, res, next)
+
+const listarAgendaPorMedico = (req, res, next) =>
+  listAgendas(req, res, next, req.params.medicoId)
+
+const atualizarAgenda = async (req, res, next) => {
+  const client = await pool.connect()
+
+  try {
+    await client.query('BEGIN')
+
+    const currentResult = await client.query(
+      `SELECT
+         a.id,
+         EXISTS (
+           SELECT 1 FROM consultas c WHERE c.agenda_id = a.id
+         ) AS possui_consulta
+       FROM agendas_medicas a
+       WHERE a.id = $1
+       FOR UPDATE`,
+      [req.params.id]
+    )
+
+    if (currentResult.rows.length === 0) {
+      await client.query('ROLLBACK')
+      return res.status(404).json({ erro: 'Agenda não encontrada' })
+    }
+
+    if (currentResult.rows[0].possui_consulta) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        erro: 'Agenda vinculada a consulta não pode ter horário alterado',
+      })
+    }
+
+    const futureSlot = await client.query(
+      `SELECT ($1::date + $2::time) > LOCALTIMESTAMP AS valido`,
+      [req.body.data_agenda, req.body.hora_inicio]
+    )
+
+    if (!futureSlot.rows[0].valido) {
+      await client.query('ROLLBACK')
+      return res.status(409).json({
+        erro: 'Não é permitido mover o horário para o passado',
+      })
+    }
+
+    const result = await client.query(
+      `UPDATE agendas_medicas
        SET data_agenda = $1,
            hora_inicio = $2,
            hora_fim = $3,
@@ -132,43 +177,69 @@ const atualizarAgenda = async (req, res) => {
            observacao = $5
        WHERE id = $6
        RETURNING *`,
-            [data_agenda, hora_inicio, hora_fim, disponivel, observacao, id]
-        );
+      [
+        req.body.data_agenda,
+        req.body.hora_inicio,
+        req.body.hora_fim,
+        req.body.disponivel,
+        req.body.observacao || null,
+        req.params.id,
+      ]
+    )
 
-        res.json({
-            mensagem: 'Agenda atualizada com sucesso',
-            agenda: result.rows[0]
-        });
-    } catch (error) {
-        res.status(500).json({ erro: error.message });
+    await client.query('COMMIT')
+    res.json({
+      mensagem: 'Agenda atualizada com sucesso',
+      agenda: result.rows[0],
+    })
+  } catch (error) {
+    const transactionError = await rollbackTransaction(client, error)
+    if (transactionError !== error) return next(transactionError)
+
+    if (['23505', '23P01'].includes(error.code)) {
+      return res.status(409).json({
+        erro: 'O horário se sobrepõe a outro horário deste médico',
+      })
     }
-};
 
-const deletarAgenda = async (req, res) => {
-    try {
-        const { id } = req.params;
+    next(error)
+  } finally {
+    client.release()
+  }
+}
 
-        const agendaExiste = await pool.query(
-            'SELECT * FROM agendas_medicas WHERE id = $1',
-            [id]
-        );
+const deletarAgenda = async (req, res, next) => {
+  try {
+    const schedule = await pool.query(
+      `SELECT a.id, EXISTS (
+         SELECT 1 FROM consultas c WHERE c.agenda_id = a.id
+       ) AS possui_consulta
+       FROM agendas_medicas a
+       WHERE a.id = $1`,
+      [req.params.id]
+    )
 
-        if (agendaExiste.rows.length === 0) {
-            return res.status(404).json({ erro: 'Agenda não encontrada' });
-        }
-
-        await pool.query('DELETE FROM agendas_medicas WHERE id = $1', [id]);
-
-        res.json({ mensagem: 'Agenda deletada com sucesso' });
-    } catch (error) {
-        res.status(500).json({ erro: error.message });
+    if (schedule.rows.length === 0) {
+      return res.status(404).json({ erro: 'Agenda não encontrada' })
     }
-};
+
+    if (schedule.rows[0].possui_consulta) {
+      return res.status(409).json({
+        erro: 'Agenda vinculada a consulta deve ser preservada',
+      })
+    }
+
+    await pool.query('DELETE FROM agendas_medicas WHERE id = $1', [req.params.id])
+    res.json({ mensagem: 'Agenda removida com sucesso' })
+  } catch (error) {
+    next(error)
+  }
+}
 
 module.exports = {
-    criarAgenda,
-    listarAgendas,
-    listarAgendaPorMedico,
-    atualizarAgenda,
-    deletarAgenda
-};
+  atualizarAgenda,
+  criarAgenda,
+  deletarAgenda,
+  listarAgendaPorMedico,
+  listarAgendas,
+}

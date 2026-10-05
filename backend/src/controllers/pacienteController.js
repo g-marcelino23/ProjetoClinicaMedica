@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const criarPaciente = async (req, res) => {
+const criarPaciente = async (req, res, next) => {
     try {
         const {
             usuario_id,
@@ -46,10 +46,19 @@ const criarPaciente = async (req, res) => {
 
         const result = await pool.query(
             `INSERT INTO pacientes
-      (usuario_id, cpf, data_nascimento, telefone, endereco, convenio, numero_convenio)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      (usuario_id, cpf, cpf_lookup, data_nascimento, telefone, endereco, convenio, numero_convenio)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       RETURNING *`,
-            [usuario_id, cpf, data_nascimento, telefone, endereco, convenio, numero_convenio]
+            [
+                usuario_id,
+                cpf,
+                req.body.cpf_lookup,
+                data_nascimento,
+                telefone,
+                endereco,
+                convenio,
+                numero_convenio
+            ]
         );
 
         res.status(201).json({
@@ -57,11 +66,11 @@ const criarPaciente = async (req, res) => {
             paciente: result.rows[0]
         });
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const listarPacientes = async (req, res) => {
+const listarPacientes = async (req, res, next) => {
     try {
         const result = await pool.query(`
       SELECT
@@ -82,11 +91,11 @@ const listarPacientes = async (req, res) => {
 
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const buscarPacientePorId = async (req, res) => {
+const buscarPacientePorId = async (req, res, next) => {
     try {
         const { id } = req.params;
 
@@ -113,11 +122,11 @@ const buscarPacientePorId = async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const atualizarPaciente = async (req, res) => {
+const atualizarPaciente = async (req, res, next) => {
     try {
         const { id } = req.params;
         const {
@@ -130,7 +139,7 @@ const atualizarPaciente = async (req, res) => {
         } = req.body;
 
         const pacienteExiste = await pool.query(
-            'SELECT * FROM pacientes WHERE id = $1',
+            'SELECT id, usuario_id FROM pacientes WHERE id = $1',
             [id]
         );
 
@@ -141,14 +150,24 @@ const atualizarPaciente = async (req, res) => {
         const result = await pool.query(
             `UPDATE pacientes
        SET cpf = $1,
-           data_nascimento = $2,
-           telefone = $3,
-           endereco = $4,
-           convenio = $5,
-           numero_convenio = $6
-       WHERE id = $7
+           cpf_lookup = $2,
+           data_nascimento = $3,
+           telefone = $4,
+           endereco = $5,
+           convenio = $6,
+           numero_convenio = $7
+       WHERE id = $8
        RETURNING *`,
-            [cpf, data_nascimento, telefone, endereco, convenio, numero_convenio, id]
+            [
+                cpf,
+                req.body.cpf_lookup,
+                data_nascimento,
+                telefone,
+                endereco,
+                convenio,
+                numero_convenio,
+                id
+            ]
         );
 
         res.json({
@@ -156,11 +175,11 @@ const atualizarPaciente = async (req, res) => {
             paciente: result.rows[0]
         });
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const deletarPaciente = async (req, res) => {
+const deletarPaciente = async (req, res, next) => {
     try {
         const { id } = req.params;
 
@@ -173,11 +192,16 @@ const deletarPaciente = async (req, res) => {
             return res.status(404).json({ erro: 'Paciente não encontrado' });
         }
 
-        await pool.query('DELETE FROM pacientes WHERE id = $1', [id]);
+        await pool.query(
+            `UPDATE usuarios
+             SET ativo = false, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1`,
+            [pacienteExiste.rows[0].usuario_id]
+        );
 
-        res.json({ mensagem: 'Paciente deletado com sucesso' });
+        res.json({ mensagem: 'Acesso do paciente desativado com sucesso' });
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 

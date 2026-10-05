@@ -1,11 +1,13 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router'
 import { useAuth } from '../context/AuthContext'
 import { Spinner } from 'react-bootstrap'
+import { getProtectedRouteDecision } from './routeAccess'
 
 function ProtectedRoute({ children, allowedRoles = [] }) {
-  const { authenticated, user, loading } = useAuth()
+  const { user, initialized } = useAuth()
+  const decision = getProtectedRouteDecision({ initialized, user, allowedRoles })
 
-  if (loading) {
+  if (decision === 'WAIT') {
     return (
       <div className="d-flex justify-content-center align-items-center vh-100">
         <Spinner animation="border" />
@@ -13,15 +15,11 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
     )
   }
 
-  if (!authenticated) {
+  if (decision === 'LOGIN') {
     return <Navigate to="/login" replace />
   }
 
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
-
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user.perfil)) {
+  if (decision === 'DASHBOARD') {
     return <Navigate to="/dashboard" replace />
   }
 

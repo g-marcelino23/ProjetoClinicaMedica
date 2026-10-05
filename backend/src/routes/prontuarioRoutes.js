@@ -1,36 +1,35 @@
-const express = require('express');
-const router = express.Router();
+const express = require('express')
+const router = express.Router()
+const prontuarioController = require('../controllers/prontuarioController')
+const authMiddleware = require('../middlewares/authMiddleware')
+const roleMiddleware = require('../middlewares/roleMiddleware')
+const validate = require('../middlewares/validate')
+const schemas = require('../validation/schemas')
 
-const prontuarioController = require('../controllers/prontuarioController');
-const authMiddleware = require('../middlewares/authMiddleware');
-const roleMiddleware = require('../middlewares/roleMiddleware');
+router.use(authMiddleware)
 
 router.post(
-    '/',
-    authMiddleware,
-    roleMiddleware(['MEDICO']),
-    prontuarioController.criarProntuario
-);
-
+  '/',
+  roleMiddleware(['MEDICO']),
+  validate(schemas.records.create),
+  prontuarioController.criarProntuario
+)
 router.get(
-    '/',
-    authMiddleware,
-    roleMiddleware(['MEDICO', 'SECRETARIO', 'PACIENTE']),
-    prontuarioController.listarProntuarios
-);
-
+  '/',
+  roleMiddleware(['MEDICO', 'PACIENTE']),
+  prontuarioController.listarProntuarios
+)
 router.get(
-    '/:id',
-    authMiddleware,
-    roleMiddleware(['MEDICO', 'SECRETARIO', 'PACIENTE']),
-    prontuarioController.buscarProntuarioPorId
-);
-
+  '/:id',
+  roleMiddleware(['MEDICO', 'PACIENTE']),
+  validate(schemas.records.id),
+  prontuarioController.buscarProntuarioPorId
+)
 router.put(
-    '/:id',
-    authMiddleware,
-    roleMiddleware(['MEDICO']),
-    prontuarioController.atualizarProntuario
-);
+  '/:id',
+  roleMiddleware(['MEDICO']),
+  validate(schemas.records.update),
+  prontuarioController.atualizarProntuario
+)
 
-module.exports = router;
+module.exports = router

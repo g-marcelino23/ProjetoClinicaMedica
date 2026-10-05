@@ -1,6 +1,6 @@
 const pool = require('../config/db');
 
-const criarMedico = async (req, res) => {
+const criarMedico = async (req, res, next) => {
     try {
         const {
             usuario_id,
@@ -64,21 +64,23 @@ const criarMedico = async (req, res) => {
             medico: result.rows[0]
         });
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const listarMedicos = async (req, res) => {
+const listarMedicos = async (req, res, next) => {
     try {
+        const camposAdministrativos = req.usuario.perfil === 'SECRETARIO'
+            ? ', m.usuario_id, u.email, m.telefone'
+            : '';
+
         const result = await pool.query(`
       SELECT
         m.id,
-        m.usuario_id,
         u.nome,
-        u.email,
         m.crm,
-        m.especialidade,
-        m.telefone
+        m.especialidade
+        ${camposAdministrativos}
       FROM medicos m
       JOIN usuarios u ON u.id = m.usuario_id
       ORDER BY m.id
@@ -86,23 +88,24 @@ const listarMedicos = async (req, res) => {
 
         res.json(result.rows);
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const buscarMedicoPorId = async (req, res) => {
+const buscarMedicoPorId = async (req, res, next) => {
     try {
         const { id } = req.params;
+        const camposAdministrativos = req.usuario.perfil === 'SECRETARIO'
+            ? ', m.usuario_id, u.email, m.telefone'
+            : '';
 
         const result = await pool.query(`
       SELECT
         m.id,
-        m.usuario_id,
         u.nome,
-        u.email,
         m.crm,
-        m.especialidade,
-        m.telefone
+        m.especialidade
+        ${camposAdministrativos}
       FROM medicos m
       JOIN usuarios u ON u.id = m.usuario_id
       WHERE m.id = $1
@@ -114,11 +117,11 @@ const buscarMedicoPorId = async (req, res) => {
 
         res.json(result.rows[0]);
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const atualizarMedico = async (req, res) => {
+const atualizarMedico = async (req, res, next) => {
     try {
         const { id } = req.params;
         const {
@@ -128,7 +131,7 @@ const atualizarMedico = async (req, res) => {
         } = req.body;
 
         const medicoExiste = await pool.query(
-            'SELECT * FROM medicos WHERE id = $1',
+            'SELECT id, usuario_id FROM medicos WHERE id = $1',
             [id]
         );
 
@@ -162,11 +165,11 @@ const atualizarMedico = async (req, res) => {
             medico: result.rows[0]
         });
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 
-const deletarMedico = async (req, res) => {
+const deletarMedico = async (req, res, next) => {
     try {
         const { id } = req.params;
 
@@ -179,11 +182,16 @@ const deletarMedico = async (req, res) => {
             return res.status(404).json({ erro: 'Médico não encontrado' });
         }
 
-        await pool.query('DELETE FROM medicos WHERE id = $1', [id]);
+        await pool.query(
+            `UPDATE usuarios
+             SET ativo = false, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $1`,
+            [medicoExiste.rows[0].usuario_id]
+        );
 
-        res.json({ mensagem: 'Médico deletado com sucesso' });
+        res.json({ mensagem: 'Acesso do médico desativado com sucesso' });
     } catch (error) {
-        res.status(500).json({ erro: error.message });
+        next(error);
     }
 };
 

@@ -1,17 +1,22 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Alert, Button, Form, Modal, Spinner } from 'react-bootstrap'
 import {
-  Modal,
-  Button,
-  Form,
-  Table,
-  Badge,
-  Card,
-  Row,
-  Col,
-  Alert,
-  Spinner
-} from 'react-bootstrap'
-import { FaFlask, FaPlus, FaEdit, FaTrash, FaSearch } from 'react-icons/fa'
+  FaCalendarAlt,
+  FaCalendarCheck,
+  FaCheckCircle,
+  FaClipboardCheck,
+  FaEdit,
+  FaFileMedical,
+  FaFilter,
+  FaFlask,
+  FaMicroscope,
+  FaPlus,
+  FaSearch,
+  FaSyncAlt,
+  FaTrash,
+  FaUserInjured,
+  FaUserMd
+} from 'react-icons/fa'
 import MainLayout from '../../components/layout/MainLayout'
 import {
   listarExames,
@@ -21,47 +26,99 @@ import {
 } from '../../services/exameService'
 import { listarConsultas } from '../../services/consultaService'
 import { useAuth } from '../../context/AuthContext'
+import './ExamesPage.css'
+
+const FORM_INICIAL = {
+  id: null,
+  consulta_id: '',
+  paciente_id: '',
+  medico_id: '',
+  nome_exame: '',
+  descricao: '',
+  status: 'SOLICITADO',
+  data_exame: '',
+  resultado: '',
+  observacoes: ''
+}
+
+const STATUS_OPTIONS = [
+  { value: '', label: 'Todos os status' },
+  { value: 'SOLICITADO', label: 'Solicitado' },
+  { value: 'AGENDADO', label: 'Agendado' },
+  { value: 'REALIZADO', label: 'Realizado' },
+  { value: 'ENTREGUE', label: 'Entregue' },
+  { value: 'CANCELADO', label: 'Cancelado' }
+]
+
+const STATUS_LABELS = {
+  SOLICITADO: 'Solicitado',
+  AGENDADO: 'Agendado',
+  REALIZADO: 'Realizado',
+  ENTREGUE: 'Entregue',
+  CANCELADO: 'Cancelado'
+}
+
+function parseLocalDate(value) {
+  if (!value) return null
+
+  const [year, month, day] = String(value).slice(0, 10).split('-').map(Number)
+
+  if (!year || !month || !day) return null
+  return new Date(year, month - 1, day)
+}
+
+function formatarData(value) {
+  const date = parseLocalDate(value)
+
+  if (!date) return 'Não agendado'
+  return date.toLocaleDateString('pt-BR')
+}
+
+function obterIniciais(nome) {
+  if (!nome) return '--'
+
+  return nome
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((parte) => parte[0])
+    .join('')
+    .toUpperCase()
+}
 
 function ExamesPage() {
   const { user } = useAuth()
 
   const [exames, setExames] = useState([])
   const [consultas, setConsultas] = useState([])
-
   const [loading, setLoading] = useState(true)
+  const [salvando, setSalvando] = useState(false)
+  const [excluindo, setExcluindo] = useState(false)
   const [erro, setErro] = useState('')
+  const [erroModal, setErroModal] = useState('')
   const [sucesso, setSucesso] = useState('')
-
   const [showModal, setShowModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [modoEdicao, setModoEdicao] = useState(false)
+  const [exameParaExcluir, setExameParaExcluir] = useState(null)
   const [busca, setBusca] = useState('')
-
-  const [formData, setFormData] = useState({
-    id: null,
-    consulta_id: '',
-    paciente_id: '',
-    medico_id: '',
-    nome_exame: '',
-    descricao: '',
-    status: 'SOLICITADO',
-    data_exame: '',
-    resultado: '',
-    observacoes: ''
-  })
+  const [statusFiltro, setStatusFiltro] = useState('')
+  const [formData, setFormData] = useState(FORM_INICIAL)
 
   const perfil = user?.perfil
-  const podeCriarExame = perfil === 'MEDICO' || perfil === 'SECRETARIO'
-  const podeEditarExame = perfil === 'MEDICO' || perfil === 'SECRETARIO'
+  const podeCriarExame = perfil === 'MEDICO'
+  const podeEditarExame = perfil === 'MEDICO'
   const podeExcluirExame = perfil === 'SECRETARIO'
+  const perfilLabel = {
+    SECRETARIO: 'Secretário',
+    MEDICO: 'Médico',
+    PACIENTE: 'Paciente'
+  }[perfil]
 
   const precisaResultado =
     formData.status === 'REALIZADO' || formData.status === 'ENTREGUE'
 
-  useEffect(() => {
-    carregarDados()
-  }, [])
-
-  const carregarDados = async () => {
+  const carregarDados = useCallback(async () => {
     try {
       setLoading(true)
       setErro('')
@@ -79,39 +136,57 @@ function ExamesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const formatarData = (data) => {
-    if (!data) return ''
-    return new Date(data).toLocaleDateString('pt-BR')
-  }
+  useEffect(() => {
+    carregarDados()
+  }, [carregarDados])
+
+  const consultaSelecionada = useMemo(
+    () =>
+      consultas.find(
+        (consulta) => Number(consulta.id) === Number(formData.consulta_id)
+      ),
+    [consultas, formData.consulta_id]
+  )
 
   const examesFiltrados = useMemo(() => {
-    const termo = busca.toLowerCase()
+    const termo = busca.trim().toLocaleLowerCase('pt-BR')
 
     return exames.filter((exame) => {
-      return (
-        (exame.nome_exame || '').toLowerCase().includes(termo) ||
-        (exame.paciente_nome || '').toLowerCase().includes(termo) ||
-        (exame.medico_nome || '').toLowerCase().includes(termo) ||
-        (exame.status || '').toLowerCase().includes(termo)
-      )
+      const correspondeStatus = !statusFiltro || exame.status === statusFiltro
+      const textoBusca = [
+        exame.id,
+        exame.consulta_id,
+        exame.nome_exame,
+        exame.paciente_nome,
+        exame.medico_nome,
+        exame.status,
+        STATUS_LABELS[exame.status],
+        exame.resultado
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('pt-BR')
+      const correspondeBusca = !termo || textoBusca.includes(termo)
+
+      return correspondeStatus && correspondeBusca
     })
-  }, [busca, exames])
+  }, [busca, exames, statusFiltro])
+
+  const estatisticas = useMemo(
+    () => ({
+      total: exames.length,
+      solicitados: exames.filter((item) => item.status === 'SOLICITADO').length,
+      agendados: exames.filter((item) => item.status === 'AGENDADO').length,
+      realizados: exames.filter((item) => item.status === 'REALIZADO').length,
+      entregues: exames.filter((item) => item.status === 'ENTREGUE').length
+    }),
+    [exames]
+  )
 
   const limparFormulario = () => {
-    setFormData({
-      id: null,
-      consulta_id: '',
-      paciente_id: '',
-      medico_id: '',
-      nome_exame: '',
-      descricao: '',
-      status: 'SOLICITADO',
-      data_exame: '',
-      resultado: '',
-      observacoes: ''
-    })
+    setFormData(FORM_INICIAL)
   }
 
   const abrirModalCadastro = () => {
@@ -121,6 +196,7 @@ function ExamesPage() {
     }
 
     setModoEdicao(false)
+    setErroModal('')
     limparFormulario()
     setShowModal(true)
   }
@@ -132,6 +208,7 @@ function ExamesPage() {
     }
 
     setModoEdicao(true)
+    setErroModal('')
     setFormData({
       id: exame.id,
       consulta_id: String(exame.consulta_id || ''),
@@ -148,23 +225,28 @@ function ExamesPage() {
   }
 
   const fecharModal = () => {
+    if (salvando) return
+
     setShowModal(false)
+    setErroModal('')
     limparFormulario()
   }
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
+  const handleChange = (event) => {
+    const { name, value } = event.target
+
+    setErroModal('')
 
     if (name === 'consulta_id') {
-      const consultaSelecionada = consultas.find(
-        (consulta) => Number(consulta.id) === Number(value)
+      const consulta = consultas.find(
+        (item) => Number(item.id) === Number(value)
       )
 
       setFormData((prev) => ({
         ...prev,
         consulta_id: value,
-        paciente_id: consultaSelecionada ? String(consultaSelecionada.paciente_id) : '',
-        medico_id: consultaSelecionada ? String(consultaSelecionada.medico_id) : ''
+        paciente_id: consulta ? String(consulta.paciente_id) : '',
+        medico_id: consulta ? String(consulta.medico_id) : ''
       }))
       return
     }
@@ -173,10 +255,9 @@ function ExamesPage() {
       setFormData((prev) => ({
         ...prev,
         status: value,
-        resultado:
-          value === 'REALIZADO' || value === 'ENTREGUE'
-            ? prev.resultado
-            : ''
+        resultado: ['REALIZADO', 'ENTREGUE'].includes(value)
+          ? prev.resultado
+          : ''
       }))
       return
     }
@@ -187,43 +268,47 @@ function ExamesPage() {
     }))
   }
 
-  const salvarExame = async (e) => {
-    e.preventDefault()
+  const salvarExame = async (event) => {
+    event.preventDefault()
 
     if (modoEdicao && !podeEditarExame) {
-      setErro('Você não tem permissão para editar exame.')
+      setErroModal('Você não tem permissão para editar exame.')
       return
     }
 
     if (!modoEdicao && !podeCriarExame) {
-      setErro('Você não tem permissão para cadastrar exame.')
+      setErroModal('Você não tem permissão para cadastrar exame.')
+      return
+    }
+
+    if (
+      !formData.consulta_id ||
+      !formData.paciente_id ||
+      !formData.medico_id ||
+      !formData.nome_exame.trim()
+    ) {
+      setErroModal('Preencha a consulta e o nome do exame.')
+      return
+    }
+
+    if (precisaResultado && !formData.resultado.trim()) {
+      setErroModal(
+        'O resultado é obrigatório para exames realizados ou entregues.'
+      )
       return
     }
 
     try {
+      setSalvando(true)
+      setErroModal('')
       setErro('')
       setSucesso('')
-
-      if (
-        !formData.consulta_id ||
-        !formData.paciente_id ||
-        !formData.medico_id ||
-        !formData.nome_exame
-      ) {
-        setErro('Preencha consulta e nome do exame.')
-        return
-      }
-
-      if (precisaResultado && !formData.resultado.trim()) {
-        setErro('Resultado é obrigatório para exames com status REALIZADO ou ENTREGUE.')
-        return
-      }
 
       const payload = {
         consulta_id: Number(formData.consulta_id),
         paciente_id: Number(formData.paciente_id),
         medico_id: Number(formData.medico_id),
-        nome_exame: formData.nome_exame,
+        nome_exame: formData.nome_exame.trim(),
         descricao: formData.descricao,
         status: formData.status,
         data_exame: formData.data_exame || null,
@@ -246,384 +331,697 @@ function ExamesPage() {
         setSucesso('Exame cadastrado com sucesso.')
       }
 
-      fecharModal()
-      carregarDados()
+      setShowModal(false)
+      limparFormulario()
+      await carregarDados()
     } catch (error) {
       console.error('Erro ao salvar exame:', error)
-      setErro(error.response?.data?.erro || 'Erro ao salvar exame.')
+      setErroModal(error.response?.data?.erro || 'Erro ao salvar exame.')
+    } finally {
+      setSalvando(false)
     }
   }
 
-  const handleExcluir = async (id) => {
+  const abrirExclusao = (exame) => {
     if (!podeExcluirExame) {
       setErro('Você não tem permissão para excluir exame.')
       return
     }
 
-    const confirmar = window.confirm('Deseja realmente excluir este exame?')
-    if (!confirmar) return
+    setExameParaExcluir(exame)
+    setShowDeleteModal(true)
+  }
+
+  const fecharExclusao = () => {
+    if (excluindo) return
+
+    setShowDeleteModal(false)
+    setExameParaExcluir(null)
+  }
+
+  const confirmarExclusao = async () => {
+    if (!exameParaExcluir) return
 
     try {
+      setExcluindo(true)
       setErro('')
       setSucesso('')
 
-      await deletarExame(id)
+      await deletarExame(exameParaExcluir.id)
       setSucesso('Exame excluído com sucesso.')
-      carregarDados()
+      setShowDeleteModal(false)
+      setExameParaExcluir(null)
+      await carregarDados()
     } catch (error) {
       console.error('Erro ao excluir exame:', error)
       setErro(error.response?.data?.erro || 'Erro ao excluir exame.')
+    } finally {
+      setExcluindo(false)
     }
   }
 
-  const renderStatusBadge = (status) => {
-    if (status === 'REALIZADO' || status === 'ENTREGUE') {
-      return <Badge bg="success">{status}</Badge>
+  const renderStatus = (status) => (
+    <span className={`exams-status exams-status--${status?.toLowerCase()}`}>
+      <span />
+      {STATUS_LABELS[status] || status || 'Sem status'}
+    </span>
+  )
+
+  const renderAcoes = (exame) => {
+    if (!podeEditarExame && !podeExcluirExame) {
+      return <span className="exams-readonly">Somente visualização</span>
     }
 
-    if (status === 'AGENDADO') {
-      return (
-        <Badge bg="warning" text="dark">
-          {status}
-        </Badge>
-      )
-    }
+    return (
+      <div className="exams-actions">
+        {podeEditarExame && (
+          <button
+            type="button"
+            className="exams-action exams-action--edit"
+            onClick={() => abrirModalEdicao(exame)}
+            title="Editar exame"
+            aria-label={`Editar ${exame.nome_exame}`}
+          >
+            <FaEdit />
+          </button>
+        )}
 
-    if (status === 'CANCELADO') {
-      return <Badge bg="danger">{status}</Badge>
-    }
-
-    return <Badge bg="secondary">{status}</Badge>
+        {podeExcluirExame && (
+          <button
+            type="button"
+            className="exams-action exams-action--delete"
+            onClick={() => abrirExclusao(exame)}
+            title="Excluir exame"
+            aria-label={`Excluir ${exame.nome_exame}`}
+          >
+            <FaTrash />
+          </button>
+        )}
+      </div>
+    )
   }
-
-  const totalExames = exames.length
-  const solicitados = exames.filter((item) => item.status === 'SOLICITADO').length
-  const agendados = exames.filter((item) => item.status === 'AGENDADO').length
-  const realizados = exames.filter((item) => item.status === 'REALIZADO').length
-  const entregues = exames.filter((item) => item.status === 'ENTREGUE').length
 
   return (
     <MainLayout>
-      <div className="container-fluid py-4">
-        {erro && <Alert variant="danger">{erro}</Alert>}
-        {sucesso && <Alert variant="success">{sucesso}</Alert>}
+      <div className="exams-page">
+        <section className="exams-hero">
+          <div className="exams-hero__content">
+            <span className="exams-hero__eyebrow">
+              <FaMicroscope />
+              Acompanhamento diagnóstico
+            </span>
+            <h1>
+              Exames organizados, resultados <span>sempre acessíveis</span>
+            </h1>
+            <p>
+              Acompanhe solicitações, agendamentos e resultados em uma visão
+              simples para toda a jornada do paciente.
+            </p>
+          </div>
 
-        <Row className="g-3 mb-4">
-          <Col md={3}>
-            <Card className="border-0 shadow-sm rounded-4 h-100">
-              <Card.Body>
-                <small className="text-muted">Total de exames</small>
-                <div className="d-flex justify-content-between align-items-center mt-2">
-                  <h3 className="fw-bold mb-0">{totalExames}</h3>
-                  <FaFlask size={24} className="text-primary" />
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col md={3}>
-            <Card className="border-0 shadow-sm rounded-4 h-100">
-              <Card.Body>
-                <small className="text-muted">Solicitados</small>
-                <h3 className="fw-bold mt-2 mb-0">{solicitados}</h3>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col md={2}>
-            <Card className="border-0 shadow-sm rounded-4 h-100">
-              <Card.Body>
-                <small className="text-muted">Agendados</small>
-                <h3 className="fw-bold mt-2 mb-0">{agendados}</h3>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col md={2}>
-            <Card className="border-0 shadow-sm rounded-4 h-100">
-              <Card.Body>
-                <small className="text-muted">Realizados</small>
-                <h3 className="fw-bold mt-2 mb-0">{realizados}</h3>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col md={2}>
-            <Card className="border-0 shadow-sm rounded-4 h-100">
-              <Card.Body>
-                <small className="text-muted">Entregues</small>
-                <h3 className="fw-bold mt-2 mb-0">{entregues}</h3>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        <Card className="border-0 shadow-sm rounded-4">
-          <Card.Body>
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+          <div className="exams-hero__actions">
+            <div className="exams-hero__profile">
+              <span>
+                <FaFileMedical />
+              </span>
               <div>
-                <h4 className="fw-bold mb-1">Gestão de Exames</h4>
-                <p className="text-muted mb-0">
-                  Cadastre, acompanhe e edite os exames dos pacientes.
-                </p>
-              </div>
-
-              <div className="d-flex flex-column flex-sm-row gap-2">
-                <div className="position-relative">
-                  <FaSearch
-                    className="position-absolute top-50 translate-middle-y text-muted"
-                    style={{ left: '12px' }}
-                  />
-                  <Form.Control
-                    type="text"
-                    placeholder="Buscar exame..."
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    className="rounded-3 ps-5"
-                  />
-                </div>
-
-                {podeCriarExame && (
-                  <Button
-                    variant="primary"
-                    className="rounded-3 d-flex align-items-center gap-2"
-                    onClick={abrirModalCadastro}
-                  >
-                    <FaPlus />
-                    Novo Exame
-                  </Button>
-                )}
+                <small>Visualização atual</small>
+                <strong>{perfilLabel || 'Usuário'}</strong>
               </div>
             </div>
 
-            {loading ? (
-              <div className="d-flex justify-content-center py-5">
+            {podeCriarExame && (
+              <Button className="exams-add-button" onClick={abrirModalCadastro}>
+                <FaPlus />
+                Novo exame
+              </Button>
+            )}
+          </div>
+
+          <FaFlask className="exams-hero__decoration" aria-hidden="true" />
+        </section>
+
+        {erro && (
+          <Alert
+            variant="danger"
+            className="exams-feedback"
+            dismissible
+            onClose={() => setErro('')}
+          >
+            {erro}
+          </Alert>
+        )}
+
+        {sucesso && (
+          <Alert
+            variant="success"
+            className="exams-feedback"
+            dismissible
+            onClose={() => setSucesso('')}
+          >
+            {sucesso}
+          </Alert>
+        )}
+
+        <section className="exams-stats" aria-label="Resumo dos exames">
+          <article className="exams-stat exams-stat--blue">
+            <span className="exams-stat__icon">
+              <FaFlask />
+            </span>
+            <span>
+              <small>Total de exames</small>
+              <strong>{estatisticas.total}</strong>
+              <p>Registros disponíveis</p>
+            </span>
+          </article>
+
+          <article className="exams-stat exams-stat--slate">
+            <span className="exams-stat__icon">
+              <FaClipboardCheck />
+            </span>
+            <span>
+              <small>Solicitados</small>
+              <strong>{estatisticas.solicitados}</strong>
+              <p>Aguardando agendamento</p>
+            </span>
+          </article>
+
+          <article className="exams-stat exams-stat--amber">
+            <span className="exams-stat__icon">
+              <FaCalendarCheck />
+            </span>
+            <span>
+              <small>Agendados</small>
+              <strong>{estatisticas.agendados}</strong>
+              <p>Com data programada</p>
+            </span>
+          </article>
+
+          <article className="exams-stat exams-stat--violet">
+            <span className="exams-stat__icon">
+              <FaMicroscope />
+            </span>
+            <span>
+              <small>Realizados</small>
+              <strong>{estatisticas.realizados}</strong>
+              <p>Com resultado registrado</p>
+            </span>
+          </article>
+
+          <article className="exams-stat exams-stat--green">
+            <span className="exams-stat__icon">
+              <FaCheckCircle />
+            </span>
+            <span>
+              <small>Entregues</small>
+              <strong>{estatisticas.entregues}</strong>
+              <p>Resultados disponibilizados</p>
+            </span>
+          </article>
+        </section>
+
+        <section className="exams-workspace">
+          <div className="exams-workspace__header">
+            <div className="exams-workspace__title">
+              <span className="exams-workspace__icon">
+                <FaFlask />
+              </span>
+              <div>
+                <span>Central de exames</span>
+                <h2>Exames dos pacientes</h2>
+                <p>
+                  {examesFiltrados.length}{' '}
+                  {examesFiltrados.length === 1 ? 'registro exibido' : 'registros exibidos'}
+                </p>
+              </div>
+            </div>
+
+            <div className="exams-toolbar">
+              <div className="exams-search">
+                <FaSearch />
+                <Form.Control
+                  type="search"
+                  value={busca}
+                  onChange={(event) => setBusca(event.target.value)}
+                  placeholder="Buscar exame ou paciente..."
+                  aria-label="Buscar exames"
+                />
+              </div>
+
+              <div className="exams-status-filter">
+                <FaFilter />
+                <Form.Select
+                  value={statusFiltro}
+                  onChange={(event) => setStatusFiltro(event.target.value)}
+                  aria-label="Filtrar exames por status"
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </Form.Select>
+              </div>
+
+              <button
+                type="button"
+                className="exams-refresh"
+                onClick={carregarDados}
+                disabled={loading}
+                aria-label="Atualizar exames"
+                title="Atualizar exames"
+              >
+                <FaSyncAlt className={loading ? 'is-spinning' : ''} />
+              </button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="exams-loading">
+              <div className="exams-loading__icon">
                 <Spinner animation="border" />
               </div>
-            ) : (
-              <div className="table-responsive">
-                <Table hover align="middle" className="mb-0">
-                  <thead className="table-light">
+              <strong>Carregando exames</strong>
+              <p>Estamos organizando as solicitações e os resultados.</p>
+            </div>
+          ) : examesFiltrados.length > 0 ? (
+            <>
+              <div className="exams-table-wrap">
+                <table className="exams-table">
+                  <thead>
                     <tr>
-                      <th>ID</th>
-                      <th>Consulta</th>
                       <th>Exame</th>
                       <th>Paciente</th>
                       <th>Médico</th>
                       <th>Data</th>
                       <th>Status</th>
                       <th>Resultado</th>
-                      <th className="text-center">Ações</th>
+                      <th>Ações</th>
                     </tr>
                   </thead>
-
                   <tbody>
-                    {examesFiltrados.length > 0 ? (
-                      examesFiltrados.map((exame) => (
-                        <tr key={exame.id}>
-                          <td>#{exame.id}</td>
-                          <td>#{exame.consulta_id}</td>
-                          <td className="fw-semibold">{exame.nome_exame}</td>
-                          <td>{exame.paciente_nome}</td>
-                          <td>{exame.medico_nome}</td>
-                          <td>{exame.data_exame ? formatarData(exame.data_exame) : '-'}</td>
-                          <td>{renderStatusBadge(exame.status)}</td>
-                          <td style={{ maxWidth: '240px' }}>
-                            {exame.resultado ? (
-                              exame.resultado
-                            ) : (
-                              <span className="text-muted">Sem resultado</span>
-                            )}
-                          </td>
-                          <td className="text-center">
-                            <div className="d-flex justify-content-center gap-2 align-items-center">
-                              {podeEditarExame && (
-                                <Button
-                                  variant="outline-primary"
-                                  size="sm"
-                                  className="rounded-3"
-                                  onClick={() => abrirModalEdicao(exame)}
-                                >
-                                  <FaEdit />
-                                </Button>
-                              )}
-
-                              {podeExcluirExame && (
-                                <Button
-                                  variant="outline-danger"
-                                  size="sm"
-                                  className="rounded-3"
-                                  onClick={() => handleExcluir(exame.id)}
-                                >
-                                  <FaTrash />
-                                </Button>
-                              )}
-
-                              {!podeEditarExame && !podeExcluirExame && (
-                                <span className="text-muted small">Somente visualização</span>
-                              )}
+                    {examesFiltrados.map((exame) => (
+                      <tr key={exame.id}>
+                        <td>
+                          <div className="exams-name">
+                            <span>
+                              <FaFlask />
+                            </span>
+                            <div>
+                              <strong>{exame.nome_exame || 'Exame sem nome'}</strong>
+                              <small>
+                                Exame #{exame.id} · Consulta #{exame.consulta_id}
+                              </small>
                             </div>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan="9" className="text-center py-4 text-muted">
-                          Nenhum exame encontrado.
+                          </div>
                         </td>
+                        <td>
+                          <div className="exams-person">
+                            <span className="exams-avatar exams-avatar--patient">
+                              {obterIniciais(exame.paciente_nome)}
+                            </span>
+                            <strong>{exame.paciente_nome || 'Não informado'}</strong>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="exams-person">
+                            <span className="exams-avatar exams-avatar--doctor">
+                              {obterIniciais(exame.medico_nome)}
+                            </span>
+                            <strong>{exame.medico_nome || 'Não informado'}</strong>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="exams-date">
+                            <FaCalendarAlt />
+                            {formatarData(exame.data_exame)}
+                          </div>
+                        </td>
+                        <td>{renderStatus(exame.status)}</td>
+                        <td>
+                          {exame.resultado ? (
+                            <span
+                              className="exams-result exams-result--available"
+                              title={exame.resultado}
+                            >
+                              <FaFileMedical />
+                              {exame.resultado}
+                            </span>
+                          ) : (
+                            <span className="exams-result">
+                              <FaFileMedical />
+                              Sem resultado
+                            </span>
+                          )}
+                        </td>
+                        <td>{renderAcoes(exame)}</td>
                       </tr>
-                    )}
+                    ))}
                   </tbody>
-                </Table>
+                </table>
               </div>
-            )}
-          </Card.Body>
-        </Card>
 
-        <Modal show={showModal} onHide={fecharModal} centered size="lg">
-          <Modal.Header closeButton>
-            <Modal.Title>{modoEdicao ? 'Editar Exame' : 'Cadastrar Exame'}</Modal.Title>
+              <div className="exams-mobile-list">
+                {examesFiltrados.map((exame) => (
+                  <article key={exame.id} className="exams-mobile-card">
+                    <div className="exams-mobile-card__header">
+                      <div className="exams-name">
+                        <span>
+                          <FaFlask />
+                        </span>
+                        <div>
+                          <strong>{exame.nome_exame || 'Exame sem nome'}</strong>
+                          <small>
+                            Exame #{exame.id} · Consulta #{exame.consulta_id}
+                          </small>
+                        </div>
+                      </div>
+                      {renderStatus(exame.status)}
+                    </div>
+
+                    <div className="exams-mobile-card__details">
+                      <div>
+                        <span>Paciente</span>
+                        <strong>{exame.paciente_nome || 'Não informado'}</strong>
+                      </div>
+                      <div>
+                        <span>Médico</span>
+                        <strong>{exame.medico_nome || 'Não informado'}</strong>
+                      </div>
+                      <div>
+                        <span>Data do exame</span>
+                        <strong>{formatarData(exame.data_exame)}</strong>
+                      </div>
+                    </div>
+
+                    <div className="exams-mobile-card__result">
+                      <span>Resultado</span>
+                      <p>{exame.resultado || 'Ainda não informado'}</p>
+                    </div>
+
+                    <div className="exams-mobile-card__footer">
+                      {renderAcoes(exame)}
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="exams-empty">
+              {busca || statusFiltro ? <FaSearch /> : <FaFlask />}
+              <h3>
+                {busca || statusFiltro
+                  ? 'Nenhum exame encontrado'
+                  : 'Nenhum exame cadastrado'}
+              </h3>
+              <p>
+                {busca || statusFiltro
+                  ? 'Ajuste a busca ou o filtro para visualizar outros exames.'
+                  : 'Os exames cadastrados aparecerão aqui para acompanhamento.'}
+              </p>
+              {busca || statusFiltro ? (
+                <Button
+                  variant="light"
+                  onClick={() => {
+                    setBusca('')
+                    setStatusFiltro('')
+                  }}
+                >
+                  Limpar filtros
+                </Button>
+              ) : (
+                podeCriarExame && (
+                  <Button className="exams-empty__button" onClick={abrirModalCadastro}>
+                    <FaPlus />
+                    Cadastrar exame
+                  </Button>
+                )
+              )}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <Modal
+        show={showModal}
+        onHide={fecharModal}
+        centered
+        size="lg"
+        dialogClassName="exams-form-modal"
+      >
+        <Form onSubmit={salvarExame}>
+          <Modal.Header closeButton={!salvando}>
+            <div className="exams-modal-heading">
+              <span>
+                {modoEdicao ? <FaEdit /> : <FaFlask />}
+              </span>
+              <div>
+                <small>{modoEdicao ? 'Atualização de registro' : 'Nova solicitação'}</small>
+                <Modal.Title>
+                  {modoEdicao ? 'Editar exame' : 'Cadastrar exame'}
+                </Modal.Title>
+                <p>
+                  {modoEdicao
+                    ? 'Atualize o andamento e as informações do exame.'
+                    : 'Vincule o exame a uma consulta existente.'}
+                </p>
+              </div>
+            </div>
           </Modal.Header>
 
-          <Form onSubmit={salvarExame}>
-            <Modal.Body>
-              {!modoEdicao && (
-                <Row>
-                  <Col md={12} className="mb-3">
-                    <Form.Label>Consulta</Form.Label>
-                    <Form.Select
-                      name="consulta_id"
-                      value={formData.consulta_id}
-                      onChange={handleChange}
-                      required
-                    >
-                      <option value="">Selecione uma consulta</option>
-                      {consultas.map((consulta) => (
-                        <option key={consulta.id} value={consulta.id}>
-                          Consulta #{consulta.id} - {consulta.paciente_nome} / {consulta.medico_nome}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Col>
+          <Modal.Body>
+            {erroModal && (
+              <Alert variant="danger" className="exams-modal-alert">
+                {erroModal}
+              </Alert>
+            )}
 
-                  <Col md={6} className="mb-3">
-                    <Form.Label>Paciente</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={
-                        consultas.find((c) => Number(c.id) === Number(formData.consulta_id))
-                          ?.paciente_nome || ''
-                      }
-                      readOnly
-                    />
-                  </Col>
+            {!modoEdicao && (
+              <>
+                <div className="exams-modal-section-title">
+                  <FaCalendarCheck />
+                  Vínculo com a consulta
+                </div>
 
-                  <Col md={6} className="mb-3">
-                    <Form.Label>Médico</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={
-                        consultas.find((c) => Number(c.id) === Number(formData.consulta_id))
-                          ?.medico_nome || ''
-                      }
-                      readOnly
-                    />
-                  </Col>
-                </Row>
-              )}
-
-              <Row>
-                <Col md={6} className="mb-3">
-                  <Form.Label>Nome do exame</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="nome_exame"
-                    value={formData.nome_exame}
+                <Form.Group className="exams-modal-field">
+                  <Form.Label>
+                    Consulta <span>*</span>
+                  </Form.Label>
+                  <Form.Select
+                    name="consulta_id"
+                    value={formData.consulta_id}
                     onChange={handleChange}
-                    placeholder="Digite o nome do exame"
                     required
-                  />
-                </Col>
+                  >
+                    <option value="">Selecione uma consulta</option>
+                    {consultas.map((consulta) => (
+                      <option key={consulta.id} value={consulta.id}>
+                        Consulta #{consulta.id} — {consulta.paciente_nome} /{' '}
+                        {consulta.medico_nome}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
 
-                <Col md={6} className="mb-3">
-                  <Form.Label>Data do exame</Form.Label>
+                {consultaSelecionada && (
+                  <div className="exams-consultation-summary">
+                    <div>
+                      <span>
+                        <FaUserInjured />
+                      </span>
+                      <div>
+                        <small>Paciente</small>
+                        <strong>{consultaSelecionada.paciente_nome}</strong>
+                      </div>
+                    </div>
+                    <div>
+                      <span>
+                        <FaUserMd />
+                      </span>
+                      <div>
+                        <small>Médico</small>
+                        <strong>{consultaSelecionada.medico_nome}</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {modoEdicao && (
+              <div className="exams-edit-context">
+                <FaFileMedical />
+                <div>
+                  <small>Exame vinculado à consulta #{formData.consulta_id}</small>
+                  <strong>{formData.nome_exame}</strong>
+                </div>
+              </div>
+            )}
+
+            <div className="exams-modal-section-title">
+              <FaMicroscope />
+              Informações do exame
+            </div>
+
+            <div className="exams-modal-grid">
+              <Form.Group className="exams-modal-field">
+                <Form.Label>
+                  Nome do exame <span>*</span>
+                </Form.Label>
+                <Form.Control
+                  type="text"
+                  name="nome_exame"
+                  value={formData.nome_exame}
+                  onChange={handleChange}
+                  placeholder="Ex.: Hemograma completo"
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="exams-modal-field">
+                <Form.Label>Data do exame</Form.Label>
+                <div className="exams-modal-date">
+                  <FaCalendarAlt />
                   <Form.Control
                     type="date"
                     name="data_exame"
                     value={formData.data_exame}
                     onChange={handleChange}
                   />
-                </Col>
+                </div>
+              </Form.Group>
 
-                <Col md={6} className="mb-3">
-                  <Form.Label>Status</Form.Label>
-                  <Form.Select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                  >
-                    <option value="SOLICITADO">SOLICITADO</option>
-                    <option value="AGENDADO">AGENDADO</option>
-                    <option value="REALIZADO">REALIZADO</option>
-                    <option value="ENTREGUE">ENTREGUE</option>
-                    <option value="CANCELADO">CANCELADO</option>
-                  </Form.Select>
-                </Col>
+              <Form.Group className="exams-modal-field">
+                <Form.Label>Status</Form.Label>
+                <Form.Select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                >
+                  {STATUS_OPTIONS.filter((status) => status.value).map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
 
-                <Col md={6} className="mb-3">
-                  <Form.Label>Descrição</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="descricao"
-                    value={formData.descricao}
-                    onChange={handleChange}
-                    placeholder="Descrição do exame"
-                  />
-                </Col>
+              <Form.Group className="exams-modal-field">
+                <Form.Label>Descrição</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="descricao"
+                  value={formData.descricao}
+                  onChange={handleChange}
+                  placeholder="Descrição do exame"
+                />
+              </Form.Group>
+            </div>
 
-                <Col md={12} className="mb-3">
-                  <Form.Label>Resultado</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={4}
-                    name="resultado"
-                    value={formData.resultado}
-                    onChange={handleChange}
-                    placeholder={
-                      precisaResultado
-                        ? 'Digite o resultado do exame'
-                        : 'Resultado só é necessário quando o exame estiver REALIZADO ou ENTREGUE'
-                    }
-                    disabled={!precisaResultado}
-                    required={precisaResultado}
-                  />
-                </Col>
+            <div className="exams-modal-section-title">
+              <FaFileMedical />
+              Resultado e observações
+            </div>
 
-                <Col md={12} className="mb-3">
-                  <Form.Label>Observações</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    name="observacoes"
-                    value={formData.observacoes}
-                    onChange={handleChange}
-                    placeholder="Observações adicionais"
-                  />
-                </Col>
-              </Row>
-            </Modal.Body>
+            <Form.Group className="exams-modal-field">
+              <Form.Label>
+                Resultado {precisaResultado && <span>*</span>}
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                name="resultado"
+                value={formData.resultado}
+                onChange={handleChange}
+                placeholder={
+                  precisaResultado
+                    ? 'Digite o resultado do exame'
+                    : 'Disponível quando o exame for realizado ou entregue'
+                }
+                disabled={!precisaResultado}
+                required={precisaResultado}
+              />
+              {!precisaResultado && (
+                <Form.Text>
+                  O resultado é habilitado nos status Realizado e Entregue.
+                </Form.Text>
+              )}
+            </Form.Group>
 
-            <Modal.Footer>
-              <Button variant="secondary" onClick={fecharModal}>
-                Cancelar
-              </Button>
-              <Button variant="primary" type="submit">
-                {modoEdicao ? 'Salvar alterações' : 'Cadastrar exame'}
-              </Button>
-            </Modal.Footer>
-          </Form>
-        </Modal>
-      </div>
+            <Form.Group className="exams-modal-field exams-modal-field--spaced">
+              <Form.Label>Observações</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                name="observacoes"
+                value={formData.observacoes}
+                onChange={handleChange}
+                placeholder="Observações adicionais"
+              />
+            </Form.Group>
+          </Modal.Body>
+
+          <Modal.Footer>
+            <Button
+              type="button"
+              variant="light"
+              onClick={fecharModal}
+              disabled={salvando}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" className="exams-modal-submit" disabled={salvando}>
+              {salvando ? (
+                <>
+                  <Spinner animation="border" size="sm" />
+                  Salvando
+                </>
+              ) : (
+                <>
+                  {modoEdicao ? <FaCheckCircle /> : <FaPlus />}
+                  {modoEdicao ? 'Salvar alterações' : 'Cadastrar exame'}
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
+      <Modal
+        show={showDeleteModal}
+        onHide={fecharExclusao}
+        centered
+        dialogClassName="exams-delete-modal"
+      >
+        <Modal.Body>
+          <div className="exams-delete-modal__icon">
+            <FaTrash />
+          </div>
+          <h2>Excluir exame?</h2>
+          <p>
+            O exame <strong>{exameParaExcluir?.nome_exame}</strong> será removido
+            permanentemente. Essa ação não poderá ser desfeita.
+          </p>
+          <div className="exams-delete-modal__actions">
+            <Button variant="light" onClick={fecharExclusao} disabled={excluindo}>
+              Manter exame
+            </Button>
+            <Button variant="danger" onClick={confirmarExclusao} disabled={excluindo}>
+              {excluindo ? (
+                <>
+                  <Spinner animation="border" size="sm" />
+                  Excluindo
+                </>
+              ) : (
+                <>
+                  <FaTrash />
+                  Excluir
+                </>
+              )}
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
     </MainLayout>
   )
 }
